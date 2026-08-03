@@ -1,0 +1,70 @@
+<launch>
+  <arg name="model" default="waffle_pi"/>
+  <arg name="gui" default="true"/>
+  <arg name="paused" default="false"/>
+  <arg name="verbose" default="false"/>
+  <arg name="gazebo_seed" default="0"
+       doc="Random seed passed to the Gazebo physics server"/>
+  <arg name="world_name"
+       default="$(find turtlebot_ddpg)/worlds/voronoi_exploration_arena.world"/>
+  <arg name="robot1_x" default="-2.0"/>
+  <arg name="robot1_y" default="2.5"/>
+  <arg name="robot1_yaw" default="-1.5708"/>
+  <arg name="robot2_x" default="0.0"/>
+  <arg name="robot2_y" default="2.5"/>
+  <arg name="robot2_yaw" default="-1.5708"/>
+  <arg name="robot3_x" default="2.0"/>
+  <arg name="robot3_y" default="2.5"/>
+  <arg name="robot3_yaw" default="-1.5708"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+    <arg name="verbose" value="$(arg verbose)"/>
+    <arg name="world_name" value="$(arg world_name)"/>
+    <arg name="extra_gazebo_args" value="--seed $(arg gazebo_seed)"/>
+  </include>
+
+  <!-- robot1 -->
+  <group ns="robot1">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro robot_name:=robot1" />
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+      <param name="publish_frequency" type="double" value="30.0" />
+    </node>
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model robot1 -robot_namespace robot1 -x $(arg robot1_x) -y $(arg robot1_y) -z 0.0 -Y $(arg robot1_yaw) -param robot_description" />
+    <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
+      <rosparam command="load" file="$(find laser_filters)/turtlebot3_range_filter.yaml" />
+      <remap from="scan_filtered" to="laserscan_filtered" />
+    </node>
+  </group>
+
+  <!-- robot2 -->
+  <group ns="robot2">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro robot_name:=robot2" />
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+      <param name="publish_frequency" type="double" value="30.0" />
+    </node>
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model robot2 -robot_namespace robot2 -x $(arg robot2_x) -y $(arg robot2_y) -z 0.0 -Y $(arg robot2_yaw) -param robot_description" />
+    <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
+      <rosparam command="load" file="$(find laser_filters)/turtlebot3_range_filter.yaml" />
+      <remap from="scan_filtered" to="laserscan_filtered" />
+    </node>
+  </group>
+
+  <!-- robot3 -->
+  <group ns="robot3">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro robot_name:=robot3" />
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+      <param name="publish_frequency" type="double" value="30.0" />
+    </node>
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model robot3 -robot_namespace robot3 -x $(arg robot3_x) -y $(arg robot3_y) -z 0.0 -Y $(arg robot3_yaw) -param robot_description" />
+    <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
+      <rosparam command="load" file="$(find laser_filters)/turtlebot3_range_filter.yaml" />
+      <remap from="scan_filtered" to="laserscan_filtered" />
+    </node>
+  </group>
+
+</launch>

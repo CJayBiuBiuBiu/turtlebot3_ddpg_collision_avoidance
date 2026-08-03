@@ -1,0 +1,240 @@
+<launch>
+  <arg name="model" default="waffle_pi"/>
+  <arg name="gui" default="true"/>
+  <arg name="verbose" default="false"/>
+  <arg name="world_profile" default="research"
+       doc="research, hu_aligned, hu_layout_b, or hu_layout_c; selects matching coordinator geometry"/>
+  <arg name="world_name"
+       default="$(find turtlebot_ddpg)/worlds/voronoi_exploration_arena.world"/>
+  <arg name="robot1_x" default="-2.0"/>
+  <arg name="robot1_y" default="2.5"/>
+  <arg name="robot1_yaw" default="-1.5708"/>
+  <arg name="robot2_x" default="0.0"/>
+  <arg name="robot2_y" default="2.5"/>
+  <arg name="robot2_yaw" default="-1.5708"/>
+  <arg name="robot3_x" default="2.0"/>
+  <arg name="robot3_y" default="2.5"/>
+  <arg name="robot3_yaw" default="-1.5708"/>
+  <arg name="coverage_done_threshold" default="97.0"/>
+  <arg name="idle_done_hold" default="30.0"/>
+  <arg name="shutdown_on_done" default="false"/>
+  <arg name="complete_on_coverage" default="false"
+       doc="Stop at the first coverage threshold crossing for timed evaluations"/>
+  <arg name="max_simulation_seconds" default="0"
+       doc="Stop at this Gazebo /clock horizon; zero disables the limit"/>
+  <arg name="hybrid_fallback_stall_seconds" default="60.0"/>
+  <arg name="hybrid_fallback_active_seconds" default="30.0"/>
+  <arg name="hybrid_fallback_progress_epsilon" default="0.2"/>
+  <arg name="hybrid_fallback_minimum_coverage" default="20.0"/>
+  <arg name="adaptive_execution_start_coverage" default="40.0"/>
+  <arg name="adaptive_execution_full_coverage" default="90.0"/>
+  <arg name="tail_completion_enabled" default="false"
+       doc="Use deterministic execution-aware selection after the tail threshold"/>
+  <arg name="tail_completion_coverage" default="90.0"/>
+  <arg name="stuck_blacklist_ttl" default="90.0"/>
+  <arg name="near_collision_range" default="0.18"
+       doc="Laser-clearance threshold that starts one proximity event"/>
+  <arg name="near_collision_clear_range" default="0.25"
+       doc="Higher threshold that rearms the proximity event detector"/>
+  <arg name="selection_mode" default="execution_aware"
+       doc="geometric, vision, execution_aware, adaptive_execution_aware, mappo, mappo_hybrid, or mappo_adaptive_hybrid"/>
+  <arg name="vision_enabled" default="true"
+       doc="Enable camera openness in assignment costs and policy tokens"/>
+  <arg name="vision_scoring_mode" default="projected_obstacle"
+       doc="projected_obstacle (default) or canny (legacy ablation)"/>
+  <arg name="vision_feature_scale" default="1.0"
+       doc="Scale applied to camera openness before it enters frontier costs and MAPPO tokens"/>
+  <arg name="mapping_mode" default="laser_scan"
+       doc="laser_scan (unknown-map default) or ground_truth_radius (legacy baseline)"/>
+  <arg name="execution_path_cost_mode" default="euclidean"
+       doc="euclidean (checkpoint-compatible default) or line_risk"/>
+  <arg name="start_smoke_policy" default="false"
+       doc="Start the deterministic ROS policy bridge used to validate mappo mode"/>
+  <arg name="start_network_policy" default="false"/>
+  <arg name="decentralized_actor_nodes" default="false"
+       doc="Run one checkpoint-backed actor process per robot during evaluation"/>
+  <arg name="mappo_checkpoint" default=""/>
+  <arg name="allow_untrained_policy" default="false"/>
+  <arg name="network_deterministic" default="true"/>
+  <arg name="network_decision_interval" default="2.5"/>
+  <arg name="experiment_seed" default="0"
+       doc="Seed for repeatable evaluation-side random choices"/>
+  <arg name="gazebo_seed" default="$(arg experiment_seed)"
+       doc="Physics-engine seed; defaults to the evaluation seed"/>
+  <arg name="start_mappo_training" default="false"/>
+  <arg name="training_seed" default="0"
+       doc="Seed for MAPPO initialization, sampling, and minibatch order"/>
+  <arg name="training_rollout_length" default="32"/>
+  <arg name="training_decision_interval" default="2.5"/>
+  <arg name="training_target_switch_penalty" default="0.05"/>
+  <arg name="training_snapshot_interval" default="5"
+       doc="Save an immutable MAPPO snapshot every N updates; zero disables"/>
+  <arg name="training_snapshot_dir"
+       default="$(env HOME)/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/checkpoints/snapshots"/>
+  <arg name="mappo_training_checkpoint"
+       default="$(env HOME)/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/checkpoints/mappo_latest.pt"/>
+  <arg name="mappo_training_log"
+       default="$(env HOME)/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/mappo_training.csv"/>
+  <arg name="mappo_diagnostics_log"
+       default="$(env HOME)/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/mappo_diagnostics.csv"/>
+  <arg name="metrics_path"
+       default="$(env HOME)/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/gazebo_$(arg selection_mode).csv"/>
+
+  <include file="$(find turtlebot_ddpg)/launch/voronoi_multi_robot.launch">
+    <arg name="model" value="$(arg model)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="verbose" value="$(arg verbose)"/>
+    <arg name="world_name" value="$(arg world_name)"/>
+    <arg name="gazebo_seed" value="$(arg gazebo_seed)"/>
+    <arg name="robot1_x" value="$(arg robot1_x)"/>
+    <arg name="robot1_y" value="$(arg robot1_y)"/>
+    <arg name="robot1_yaw" value="$(arg robot1_yaw)"/>
+    <arg name="robot2_x" value="$(arg robot2_x)"/>
+    <arg name="robot2_y" value="$(arg robot2_y)"/>
+    <arg name="robot2_yaw" value="$(arg robot2_yaw)"/>
+    <arg name="robot3_x" value="$(arg robot3_x)"/>
+    <arg name="robot3_y" value="$(arg robot3_y)"/>
+    <arg name="robot3_yaw" value="$(arg robot3_yaw)"/>
+  </include>
+
+  <node pkg="turtlebot_ddpg"
+        type="exploration_coordinator_node.py"
+        name="exploration_coordinator"
+        output="screen"
+        required="true">
+    <rosparam command="load"
+              file="$(find turtlebot_ddpg)/config/gazebo_research_experiment.yaml"/>
+    <param name="selection_mode" value="$(arg selection_mode)"/>
+    <param name="vision_enabled" value="$(arg vision_enabled)"/>
+    <param name="vision_scoring_mode" value="$(arg vision_scoring_mode)"/>
+    <param name="vision_feature_scale" value="$(arg vision_feature_scale)"/>
+    <param name="mapping_mode" value="$(arg mapping_mode)"/>
+    <param name="execution_path_cost_mode" value="$(arg execution_path_cost_mode)"/>
+    <param name="world_profile" value="$(arg world_profile)"/>
+    <param name="coverage_done_threshold" value="$(arg coverage_done_threshold)"/>
+    <param name="idle_done_hold" value="$(arg idle_done_hold)"/>
+    <param name="shutdown_on_done" value="$(arg shutdown_on_done)"/>
+    <param name="complete_on_coverage" value="$(arg complete_on_coverage)"/>
+    <param name="max_simulation_seconds" value="$(arg max_simulation_seconds)"/>
+    <param name="hybrid_fallback_stall_seconds"
+           value="$(arg hybrid_fallback_stall_seconds)"/>
+    <param name="hybrid_fallback_active_seconds"
+           value="$(arg hybrid_fallback_active_seconds)"/>
+    <param name="hybrid_fallback_progress_epsilon"
+           value="$(arg hybrid_fallback_progress_epsilon)"/>
+    <param name="hybrid_fallback_minimum_coverage"
+           value="$(arg hybrid_fallback_minimum_coverage)"/>
+    <param name="adaptive_execution_start_coverage"
+           value="$(arg adaptive_execution_start_coverage)"/>
+    <param name="adaptive_execution_full_coverage"
+           value="$(arg adaptive_execution_full_coverage)"/>
+    <param name="tail_completion_enabled" value="$(arg tail_completion_enabled)"/>
+    <param name="tail_completion_coverage" value="$(arg tail_completion_coverage)"/>
+    <param name="stuck_blacklist_ttl" value="$(arg stuck_blacklist_ttl)"/>
+    <param name="near_collision_range" value="$(arg near_collision_range)"/>
+    <param name="near_collision_clear_range"
+           value="$(arg near_collision_clear_range)"/>
+    <param name="experiment_seed" value="$(arg experiment_seed)"/>
+    <param name="metrics_path" value="$(arg metrics_path)"/>
+  </node>
+
+  <node pkg="turtlebot_ddpg"
+        type="multi_robot_explorer_node.py"
+        name="robot1_explorer" args="robot1" output="screen" required="true">
+    <param name="experiment_seed" value="$(arg experiment_seed)"/>
+    <param name="near_collision_range" value="$(arg near_collision_range)"/>
+    <param name="near_collision_clear_range"
+           value="$(arg near_collision_clear_range)"/>
+  </node>
+  <node pkg="turtlebot_ddpg"
+        type="multi_robot_explorer_node.py"
+        name="robot2_explorer" args="robot2" output="screen" required="true">
+    <param name="experiment_seed" value="$(arg experiment_seed)"/>
+    <param name="near_collision_range" value="$(arg near_collision_range)"/>
+    <param name="near_collision_clear_range"
+           value="$(arg near_collision_clear_range)"/>
+  </node>
+  <node pkg="turtlebot_ddpg"
+        type="multi_robot_explorer_node.py"
+        name="robot3_explorer" args="robot3" output="screen" required="true">
+    <param name="experiment_seed" value="$(arg experiment_seed)"/>
+    <param name="near_collision_range" value="$(arg near_collision_range)"/>
+    <param name="near_collision_clear_range"
+           value="$(arg near_collision_clear_range)"/>
+  </node>
+
+  <node if="$(arg start_smoke_policy)"
+        pkg="turtlebot_ddpg"
+        type="mappo_smoke_policy.py"
+        name="mappo_smoke_policy"
+        output="screen"
+        required="true"/>
+
+  <group if="$(arg start_network_policy)">
+    <node unless="$(arg decentralized_actor_nodes)"
+          pkg="turtlebot_ddpg"
+          type="mappo_policy_node.py"
+          name="mappo_policy"
+          output="screen"
+          required="true">
+      <param name="checkpoint" value="$(arg mappo_checkpoint)"/>
+      <param name="allow_untrained" value="$(arg allow_untrained_policy)"/>
+      <param name="deterministic" value="$(arg network_deterministic)"/>
+      <param name="decision_interval" value="$(arg network_decision_interval)"/>
+      <param name="max_frontiers" value="48"/>
+      <param name="bev_size" value="64"/>
+    </node>
+
+    <group if="$(arg decentralized_actor_nodes)">
+      <node pkg="turtlebot_ddpg" type="mappo_policy_node.py"
+            name="robot1_mappo_actor" output="screen" required="true">
+        <param name="robot_name" value="robot1"/>
+        <param name="checkpoint" value="$(arg mappo_checkpoint)"/>
+        <param name="allow_untrained" value="$(arg allow_untrained_policy)"/>
+        <param name="deterministic" value="$(arg network_deterministic)"/>
+        <param name="decision_interval" value="$(arg network_decision_interval)"/>
+        <param name="max_frontiers" value="48"/>
+        <param name="bev_size" value="64"/>
+      </node>
+      <node pkg="turtlebot_ddpg" type="mappo_policy_node.py"
+            name="robot2_mappo_actor" output="screen" required="true">
+        <param name="robot_name" value="robot2"/>
+        <param name="checkpoint" value="$(arg mappo_checkpoint)"/>
+        <param name="allow_untrained" value="$(arg allow_untrained_policy)"/>
+        <param name="deterministic" value="$(arg network_deterministic)"/>
+        <param name="decision_interval" value="$(arg network_decision_interval)"/>
+        <param name="max_frontiers" value="48"/>
+        <param name="bev_size" value="64"/>
+      </node>
+      <node pkg="turtlebot_ddpg" type="mappo_policy_node.py"
+            name="robot3_mappo_actor" output="screen" required="true">
+        <param name="robot_name" value="robot3"/>
+        <param name="checkpoint" value="$(arg mappo_checkpoint)"/>
+        <param name="allow_untrained" value="$(arg allow_untrained_policy)"/>
+        <param name="deterministic" value="$(arg network_deterministic)"/>
+        <param name="decision_interval" value="$(arg network_decision_interval)"/>
+        <param name="max_frontiers" value="48"/>
+        <param name="bev_size" value="64"/>
+      </node>
+    </group>
+  </group>
+
+  <node if="$(arg start_mappo_training)"
+        pkg="turtlebot_ddpg"
+        type="mappo_train_node.py"
+        name="mappo_train"
+        output="screen"
+        required="true">
+    <param name="checkpoint" value="$(arg mappo_training_checkpoint)"/>
+    <param name="training_log" value="$(arg mappo_training_log)"/>
+    <param name="diagnostics_log" value="$(arg mappo_diagnostics_log)"/>
+    <param name="rollout_length" value="$(arg training_rollout_length)"/>
+    <param name="decision_interval" value="$(arg training_decision_interval)"/>
+    <param name="target_switch_penalty" value="$(arg training_target_switch_penalty)"/>
+    <param name="snapshot_interval" value="$(arg training_snapshot_interval)"/>
+    <param name="snapshot_dir" value="$(arg training_snapshot_dir)"/>
+    <param name="training_seed" value="$(arg training_seed)"/>
+    <param name="max_frontiers" value="48"/>
+    <param name="bev_size" value="64"/>
+  </node>
+</launch>

@@ -11,7 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  sensor_msgs
+  geometry_msgs
   gazebo_msgs
+  nav_msgs
+  message_generation
 
 )
 
@@ -48,12 +52,14 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+## Frontier-level interface between Gazebo and high-level MARL policies.
+add_message_files(
+  FILES
+  FrontierToken.msg
+  FrontierObservation.msg
+  FrontierAction.msg
+  TeammateIntent.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -70,10 +76,12 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+  nav_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -107,6 +115,11 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 CATKIN_DEPENDS
 gazebo_msgs
+geometry_msgs
+message_runtime
+nav_msgs
+sensor_msgs
+std_msgs
 #  INCLUDE_DIRS include
 #  LIBRARIES turtlebot_ddpg
 #  CATKIN_DEPENDS roscpp rospy std_msgs
@@ -163,10 +176,53 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(PROGRAMS
+  scripts/exploration_coordinator_node.py
+  scripts/multi_robot_explorer_node.py
+  scripts/mappo_smoke_policy.py
+  scripts/mappo_policy_node.py
+  scripts/mappo_train_node.py
+  scripts/audit_actor_feature_sensitivity.py
+  scripts/voronoi_exploration/exploration_coordinator.py
+  scripts/voronoi_exploration/multi_robot_explorer.py
+  scripts/run_gazebo_research.sh
+  scripts/run_mappo_training.sh
+  scripts/run_mappo_episodes.sh
+  scripts/run_mappo_vision_seed_study.sh
+  scripts/run_mapping_ablation.sh
+  scripts/run_paired_evaluation.sh
+  scripts/run_thesis_experiments.sh
+  scripts/run_hu_aligned_evaluation.sh
+  scripts/run_layout_transfer_evaluation.sh
+  scripts/run_vision_ablation.sh
+  scripts/summarize_evaluation.py
+  scripts/summarize_vision_seed_study.py
+  scripts/summarize_training_seed_study.py
+  scripts/plot_thesis_results.py
+  scripts/plot_hu_aligned_results.py
+  scripts/plot_tail_completion_results.py
+  scripts/plot_final_hu_results.py
+  scripts/plot_training_seed_study.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(FILES
+  scripts/voronoi_exploration/frontier_scoring.py
+  scripts/voronoi_exploration/hybrid_fallback.py
+  scripts/voronoi_exploration/recovery_memory.py
+  scripts/voronoi_exploration/scan_mapping.py
+  scripts/voronoi_exploration/vision_scoring.py
+  DESTINATION ${CATKIN_PACKAGE_PYTHON_DESTINATION}
+)
+
+install(DIRECTORY scripts/marl
+  DESTINATION ${CATKIN_PACKAGE_PYTHON_DESTINATION}
+  FILES_MATCHING PATTERN "*.py"
+)
+
+install(DIRECTORY launch config worlds
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 
 ## Mark executables and/or libraries for installation
 # install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node

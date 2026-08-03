@@ -4,12 +4,12 @@
 
 import ddpg_turtlebot_turtlebot3_amcl_fd_replay_human
 import numpy as np
-from keras.models import Sequential, Model
-from keras.layers import Dense, Dropout, Input, merge
-from keras.layers.merge import Add, Concatenate
-from keras.optimizers import Adam
-import keras.backend as K
-import tensorflow as tf
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, Dropout, Input, Add, Concatenate
+from tensorflow.keras.optimizers.legacy import Adam
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+import tensorflow.compat.v1.keras.backend as K
 import random
 from collections import deque
 import os.path
@@ -94,7 +94,7 @@ class ActorCritic:
 			self.critic_action_input) # where we calcaulte de/dC for feeding above
 
 		# Initialize for later gradient calculations
-		self.sess.run(tf.initialize_all_variables())
+		self.sess.run(tf.global_variables_initializer())
 
 	# ========================================================================= #
 	#                              Model Definitions                            #
@@ -112,8 +112,8 @@ class ActorCritic:
 		#output = Dense(self.env.action_space.shape[0], activation='tanh')(h3)
 		#output = Concatenate()([delta_theta])#merge([delta_theta, speed],mode='concat')
 		output = Concatenate()([delta_theta, speed])
-		model = Model(input=state_input, output=output)
-		adam  = Adam(lr=0.0001)
+		model = Model(inputs=state_input, outputs=output)
+		adam  = Adam(learning_rate=0.0001)
 		model.compile(loss="mse", optimizer=adam)
 		return state_input, model
 
@@ -129,9 +129,9 @@ class ActorCritic:
 		merged_h1 = Dense(500, activation='relu')(merged)
 		merged_h2 = Dense(500, activation='relu')(merged_h1)
 		output = Dense(1, activation='linear')(merged_h2)
-		model  = Model(input=[state_input,action_input], output=output)
+		model  = Model(inputs=[state_input,action_input], outputs=output)
 
-		adam  = Adam(lr=0.0001)
+		adam  = Adam(learning_rate=0.0001)
 		model.compile(loss="mse", optimizer=adam)
 		return state_input, action_input, model
 

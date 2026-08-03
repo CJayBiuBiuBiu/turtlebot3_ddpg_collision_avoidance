@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local environments and editor state
+.venv/
+venv/
+.vscode/
+.idea/
+*~
+
+# ROS/catkin generated files
+build/
+devel/
+install/
+logs/
+.catkin_tools/
+
+# Local experiment products
+outputs/
+*.bag
+
+# Temporary files
+*.tmp
+*.log

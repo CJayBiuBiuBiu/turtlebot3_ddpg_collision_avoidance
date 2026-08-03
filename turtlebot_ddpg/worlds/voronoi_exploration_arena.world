@@ -1,0 +1,173 @@
+<?xml version="1.0" ?>
+<sdf version="1.4">
+  <world name="default">
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <physics type='ode'>
+      <max_step_size>0.01</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>100</real_time_update_rate>
+      <gravity>0 0 -9.8</gravity>
+    </physics>
+
+    <gui>
+      <camera name="user_camera">
+        <pose>0 0 26 0 1.5708 0</pose>
+      </camera>
+    </gui>
+
+    <!-- 30m x 15m arena, centered at the origin -->
+
+    <!-- perimeter walls -->
+    <model name="wall_north">
+      <static>true</static>
+      <pose>0 7.5 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>30.2 0.2 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>30.2 0.2 0.8</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_south">
+      <static>true</static>
+      <pose>0 -7.5 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>30.2 0.2 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>30.2 0.2 0.8</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_east">
+      <static>true</static>
+      <pose>15 0 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 15 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 15 0.8</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-15 0 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.2 15 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 15 0.8</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- obstacle 1 ("brown"): center (-9,3), size 3 x 3 -->
+    <model name="obstacle_1">
+      <static>true</static>
+      <pose>-9 3 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>3.0 3.0 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>3.0 3.0 0.8</size></box></geometry>
+          <material><ambient>0.55 0.27 0.07 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- obstacle 2 ("blue"): center (-6,-4), size 2.5 x 2.5 -->
+    <model name="obstacle_2">
+      <static>true</static>
+      <pose>-6 -4 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>2.5 2.5 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>2.5 2.5 0.8</size></box></geometry>
+          <material><ambient>0.27 0.51 0.71 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- obstacle 3 ("gray"): center (0,5), size 4 x 2 -->
+    <model name="obstacle_3">
+      <static>true</static>
+      <pose>0 5 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>4.0 2.0 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>4.0 2.0 0.8</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- obstacle 4 ("purple"): center (3,-3), size 2 x 4 -->
+    <model name="obstacle_4">
+      <static>true</static>
+      <pose>3 -3 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>2.0 4.0 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>2.0 4.0 0.8</size></box></geometry>
+          <material><ambient>0.5 0.2 0.6 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- obstacle 5 ("green"): center (9,2), size 3 x 3 -->
+    <model name="obstacle_5">
+      <static>true</static>
+      <pose>9 2 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>3.0 3.0 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>3.0 3.0 0.8</size></box></geometry>
+          <material><ambient>0.2 0.55 0.2 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- obstacle 6 ("orange"): center (10,-5), size 2.5 x 2.5 -->
+    <model name="obstacle_6">
+      <static>true</static>
+      <pose>10 -5 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>2.5 2.5 0.8</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>2.5 2.5 0.8</size></box></geometry>
+          <material><ambient>0.9 0.5 0.1 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

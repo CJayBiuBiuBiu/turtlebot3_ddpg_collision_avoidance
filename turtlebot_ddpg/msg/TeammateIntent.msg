@@ -1,0 +1,6 @@
+string robot_name
+geometry_msgs/Pose2D pose
+int32 target_frontier_id
+geometry_msgs/Point target_position
+float32 link_quality
+bool received

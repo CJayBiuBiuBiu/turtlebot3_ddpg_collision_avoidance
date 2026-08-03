@@ -1,4 +1,71 @@
-# Project Title: Mapless Collision Avoidance of Turtlebot3 Mobile Robot Using DDPG and Prioritized Experience Replay
+# Vision-MAPPO Multi-Robot Exploration in Gazebo
+
+This repository extends the original TurtleBot3 DDPG collision-avoidance and
+Hu-style Voronoi exploration project into a dissertation prototype for:
+
+> Vision-Guided Multi-Agent Reinforcement Learning for Swarm Robotic
+> Exploration in Unknown Environments
+
+The current system runs with ROS Noetic and Gazebo Classic. Three TurtleBot3
+Waffle Pi robots build a shared sensor-derived occupancy map. A shared MAPPO
+actor selects frontier targets from robot-local observations, while the
+reproduced DDPG controller provides low-level motion. The final hierarchy also
+contains timed spatial recovery, bounded coverage-stall fallback, and
+deterministic tail completion.
+
+## Current architecture
+
+```text
+laser scans + RGB camera
+          |
+          v
+sensor-built occupancy map and local BEV observations
+          |
+          v
+frontier tokens + visual openness + teammate intent
+          |
+          v
+shared MAPPO frontier policy (centralized critic during training)
+          |
+          v
+timed recovery / bounded fallback / tail completion
+          |
+          v
+frozen DDPG low-level controller in Gazebo
+```
+
+The final evaluation uses local-observation action selection in one ROS policy
+process. It is a Gazebo research prototype, not a physically distributed
+multi-computer deployment.
+
+## Main entry points
+
+```bash
+# Build
+cd ~/catkin_ws
+catkin build turtlebot_ddpg
+
+# Launch the Gazebo research system
+cd ~/catkin_ws/src/turtlebot3_ddpg_collision_avoidance
+turtlebot_ddpg/scripts/run_gazebo_research.sh
+
+# Run the Hu-aligned paired evaluation with a frozen checkpoint
+MAPPO_CHECKPOINT=/path/to/mappo_selected_validation_v1.pt \
+  turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
+  5 900 97 hu_final_pair 9200
+
+# Run unit tests
+python -m unittest discover -s turtlebot_ddpg/tests -p 'test_*.py' -v
+```
+
+The validation-selected checkpoint and raw Gazebo outputs are intentionally
+excluded from Git because they are generated research artifacts. The repository
+contains the implementation, ROS configuration, Gazebo worlds, experiment
+scripts, and automated tests only.
+
+## Original project
+
+# Mapless Collision Avoidance of TurtleBot3 Using DDPG and Prioritized Experience Replay
 This work is implemented in paper [Accelerated Sim-to-Real Deep Reinforcement Learning: Learning Collision Avoidance from Human Player](https://arxiv.org/abs/2102.10711) published in 2021 IEEE/SICE International Symposium on System Integration (SII) and [Voronoi-Based Multi-Robot Autonomous Exploration in Unknown Environments via Deep Reinforcement Learning](https://ieeexplore.ieee.org/abstract/document/9244647) published in IEEE Transactions on Vehicular Technology.
 
 Demo Video 1: [Link](https://youtu.be/BmwxevgsdGc) 

@@ -26,13 +26,11 @@ from sensor_msgs.msg import LaserScan
 #from kobuki_msgs.msg import BumperEvent
 import time
 
-import tensorflow
-from keras.models import Sequential, Model
-from keras.layers import Dense, Dropout, Input, merge
-from keras.layers.merge import Add, Concatenate
-from keras.optimizers import Adam
-import keras.backend as K
-import gym
+import tensorflow.compat.v1 as tensorflow
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, Dropout, Input, Add, Concatenate
+from tensorflow.keras.optimizers import Adam
+import tensorflow.compat.v1.keras.backend as K
 import numpy as np
 import math
 import random
@@ -200,8 +198,8 @@ class GameState:
             resp = set_state( state_msg )
             resp_target = set_state( state_target_msg )
 
-        except rospy.ServiceException, e:
-            print "Service call failed: %s" % e
+        except rospy.ServiceException as e:
+            print("Service call failed: %s" % e)
 
         initial_state = np.ones(self.state_num)
         #initial_state[self.state_num-2] = 0

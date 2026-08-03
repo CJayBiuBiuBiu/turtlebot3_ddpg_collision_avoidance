@@ -1,0 +1,14 @@
+int32 id
+geometry_msgs/Point position
+float32 analytic_cost
+float32 distance
+float32 path_cost
+float32 obstacle_risk
+float32 collision_risk
+float32 overlap_risk
+float32 communication_risk
+float32 information_gain
+float32 vision_openness
+bool assigned
+bool reachable
+bool selectable

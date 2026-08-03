@@ -202,8 +202,8 @@ class GameState:
             resp = set_state( state_msg )
             resp_target = set_state( state_target_msg )
 
-        except rospy.ServiceException, e:
-            print "Service call failed: %s" % e
+        except rospy.ServiceException as e:
+            print("Service call failed: %s" % e)
 
         initial_state = np.ones(self.state_num)
         #initial_state[self.state_num-2] = 0
@@ -542,5 +542,4 @@ if __name__ == '__main__':
         
     except rospy.ROSInterruptException:
         pass
-
 
