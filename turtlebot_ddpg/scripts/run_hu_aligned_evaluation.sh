@@ -54,6 +54,7 @@ if [[ "${method_filter}" != "all" ]]; then
     core_vision_ablation) methods=(geometric execution_aware mappo_no_vision mappo_vision) ;;
     vision_pair) methods=(mappo_no_vision mappo_vision) ;;
     improvement_pair) methods=(mappo_hybrid mappo_tail) ;;
+    stack_ablation) methods=(mappo_vision mappo_hybrid mappo_tail) ;;
     deployment_pair) methods=(mappo_tail mappo_tail_decentralized) ;;
     improvement_ablation) methods=(geometric execution_aware adaptive_execution_aware mappo_hybrid mappo_tail mappo_adaptive_tail) ;;
     hu_ablation) methods=(geometric execution_aware mappo_no_vision mappo_vision mappo_hybrid) ;;
@@ -62,6 +63,17 @@ if [[ "${method_filter}" != "all" ]]; then
   esac
 fi
 mkdir -p "${output_dir}"
+
+render_backend="native_display"
+render_prefix=()
+if ! timeout 2s xdpyinfo >/dev/null 2>&1; then
+  if ! command -v xvfb-run >/dev/null 2>&1; then
+    echo "No working display is available and xvfb-run is not installed" >&2
+    exit 2
+  fi
+  render_backend="xvfb"
+  render_prefix=(xvfb-run -a -s "-screen 0 1280x720x24")
+fi
 
 if [[ ! -f "${checkpoint}" ]]; then
   echo "Checkpoint not found: ${checkpoint}" >&2
@@ -119,6 +131,7 @@ printf '%s\n' \
   "config_file_sha256,${config_file_sha256}" \
   "ros_distribution,${ros_distribution}" \
   "gazebo_version,${gazebo_version}" \
+  "render_backend,${render_backend}" \
   "python_version,${python_version}" \
   "torch_version,${torch_version}" \
   'network_deterministic,true' \
@@ -163,9 +176,9 @@ validate_run() {
     echo "[hu_eval] ${method} produced no metrics" >&2
     return 1
   fi
-  if grep -Eq 'Traceback|REQUIRED process \[robot[123]_explorer|\[gazebo-[0-9]+\] process has died' "${launch_log}"; then
+  if grep -Eq 'Traceback|Segmentation fault|REQUIRED process \[robot[123]_explorer|\[gazebo-[0-9]+\] process has died' "${launch_log}"; then
     echo "[hu_eval] ${method} log contains a node failure" >&2
-    grep -En 'Traceback|REQUIRED process \[robot[123]_explorer|\[gazebo-[0-9]+\] process has died' \
+    grep -En 'Traceback|Segmentation fault|REQUIRED process \[robot[123]_explorer|\[gazebo-[0-9]+\] process has died' \
       "${launch_log}" | tail -20 >&2
     return 1
   fi
@@ -298,8 +311,9 @@ run_method() {
   echo "[hu_eval] repeat ${repeat_id}, seed ${experiment_seed}, method ${method}"
 
   set +e
+  local fatal_startup=0
   timeout --signal=INT --kill-after=20s "${wall_timeout_seconds}s" \
-    roslaunch turtlebot_ddpg gazebo_research_experiment.launch \
+    "${render_prefix[@]}" roslaunch turtlebot_ddpg gazebo_research_experiment.launch \
       gui:=false verbose:=false \
       world_profile:="${world_profile}" world_name:="${world_file}" \
       robot1_x:=-0.8 robot1_y:=4.0 robot1_yaw:=-1.5708 \
@@ -332,10 +346,26 @@ run_method() {
       tail_completion_enabled:="${tail_completion_enabled}" \
       tail_completion_coverage:="${tail_completion_coverage}" \
       shutdown_on_done:=true \
-      metrics_path:="${metrics_path}" >"${launch_log}" 2>&1
+      metrics_path:="${metrics_path}" >"${launch_log}" 2>&1 &
+  local launch_pid=$!
+  while kill -0 "${launch_pid}" >/dev/null 2>&1; do
+    sleep 5
+    if grep -Eq 'Traceback|Segmentation fault|REQUIRED process \[robot[123]_explorer|\[gazebo-[0-9]+\] process has died' "${launch_log}"; then
+      fatal_startup=1
+      kill -INT "${launch_pid}" >/dev/null 2>&1 || true
+      break
+    fi
+  done
+  wait "${launch_pid}"
   local status=$?
   set -e
   cleanup_ros
+  if [[ ${fatal_startup} -eq 1 ]]; then
+    echo "[hu_eval] ${method} aborted after a fatal simulator/node event" >&2
+    grep -En 'Traceback|Segmentation fault|REQUIRED process \[robot[123]_explorer|\[gazebo-[0-9]+\] process has died' \
+      "${launch_log}" | tail -20 >&2
+    return 1
+  fi
   if [[ ${status} -ne 0 && ${status} -ne 124 && ${status} -ne 130 ]]; then
     echo "[hu_eval] ${method} failed with status ${status}" >&2
     tail -50 "${launch_log}" >&2
@@ -366,11 +396,22 @@ elif [[ "${method_filter}" == "hu_final_pair" ]]; then
     --negative-method geometric \
     --paired-output final_method_vs_hu_reproduction.csv
 elif [[ "${method_filter}" == "improvement_pair" ||
-        "${method_filter}" == "improvement_ablation" ]]; then
+        "${method_filter}" == "improvement_ablation" ||
+        "${method_filter}" == "stack_ablation" ]]; then
   python3 "${summarizer}" "${output_dir}" \
     --positive-method mappo_tail \
     --negative-method mappo_hybrid \
     --paired-output tail_completion_vs_previous_full_method.csv
+  if [[ "${method_filter}" == "stack_ablation" ]]; then
+    python3 "${summarizer}" "${output_dir}" \
+      --positive-method mappo_hybrid \
+      --negative-method mappo_vision \
+      --paired-output fallback_vs_plain_mappo.csv >/dev/null
+    python3 "${summarizer}" "${output_dir}" \
+      --positive-method mappo_tail \
+      --negative-method mappo_vision \
+      --paired-output complete_stack_vs_plain_mappo.csv >/dev/null
+  fi
   if [[ "${method_filter}" == "improvement_ablation" ]]; then
     python3 "${summarizer}" "${output_dir}" \
       --positive-method adaptive_execution_aware \

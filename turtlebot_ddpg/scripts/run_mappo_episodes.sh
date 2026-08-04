@@ -65,6 +65,34 @@ if [[ -n "${checkpoint_override}" ]]; then
 fi
 mkdir -p "${output_dir}"
 
+render_backend="native_display"
+render_prefix=()
+if ! timeout 2s xdpyinfo >/dev/null 2>&1; then
+  if ! command -v xvfb-run >/dev/null 2>&1; then
+    echo "No working display is available and xvfb-run is not installed" >&2
+    exit 2
+  fi
+  render_backend="xvfb"
+  render_prefix=(xvfb-run -a -s "-screen 0 1280x720x24")
+fi
+checkpoint_initial_state="absent_random_initialisation"
+if [[ -f "${checkpoint}" ]]; then
+  checkpoint_initial_state="existing_checkpoint_resume"
+fi
+printf '%s\n' \
+  'field,value' \
+  "episodes,${episodes}" \
+  "episode_seconds,${episode_seconds}" \
+  "rollout_length,${rollout_length}" \
+  "decision_interval,${decision_interval}" \
+  "world_profile,${world_profile}" \
+  "training_seed,${training_seed}" \
+  "vision_enabled,${vision_enabled}" \
+  "render_backend,${render_backend}" \
+  "checkpoint,${checkpoint}" \
+  "checkpoint_initial_state,${checkpoint_initial_state}" \
+  >"${output_dir}/training_manifest.csv"
+
 cleanup_ros() {
   set +e
   if rostopic list >/dev/null 2>&1; then
@@ -94,7 +122,7 @@ for ((episode = 1; episode <= episodes; episode++)); do
 
   set +e
   timeout --signal=INT --kill-after=20s "${episode_seconds}s" \
-    roslaunch turtlebot_ddpg gazebo_research_experiment.launch \
+    "${render_prefix[@]}" roslaunch turtlebot_ddpg gazebo_research_experiment.launch \
       gui:=false \
       verbose:=false \
       selection_mode:=mappo \
@@ -124,10 +152,28 @@ for ((episode = 1; episode <= episodes; episode++)); do
     echo "[mappo_episodes] episode ${episode} produced no metrics" >&2
     exit 1
   fi
-  if grep -Eq 'Traceback|REQUIRED process \[robot[123]_explorer|\[gazebo-[0-9]+\] process has died' "${launch_log}"; then
+  if grep -Eq 'Traceback|Segmentation fault|REQUIRED process \[robot[123]_explorer|\[gazebo-[0-9]+\] process has died' "${launch_log}"; then
     echo "[mappo_episodes] episode ${episode} contains a node failure" >&2
     exit 1
   fi
+  python3 - "${metrics_path}" "${vision_enabled}" <<'PY'
+import csv
+import sys
+
+path, vision_enabled = sys.argv[1:]
+with open(path, newline='') as stream:
+    rows = list(csv.DictReader(stream))
+if not rows:
+    raise SystemExit('training episode has only a CSV header')
+last = rows[-1]
+if int(last.get('scan_ready_robots', 0) or 0) != 3:
+    raise SystemExit('training episode did not receive all three laser streams')
+if vision_enabled == 'true':
+    if int(last.get('vision_ready_robots', 0) or 0) != 3:
+        raise SystemExit('training episode did not receive all three camera streams')
+    if int(last.get('vision_observation_count', 0) or 0) <= 0:
+        raise SystemExit('training episode recorded no visual observations')
+PY
   grep -E '\[mappo_train\] (resumed|update=)' "${launch_log}" | tail -5 || true
 done
 
