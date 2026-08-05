@@ -29,6 +29,8 @@ import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 import tensorflow.compat.v1.keras.backend as K
 
+from motion_safety import clearance_speed_scale, frontal_clearance
+
 STATE_DIM = 28
 WEIGHTS_PATH = "/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/turtlebot_ddpg/scripts/fd_replay/play_human_data/actormodel-450-500.h5"
 NEAR_COLLISION_RANGE = 0.18
@@ -78,7 +80,10 @@ def build_actor_model():
 class RobotAgent(object):
     def __init__(self, robot_name, experiment_seed=0,
                  near_collision_range=NEAR_COLLISION_RANGE,
-                 near_collision_clear_range=NEAR_COLLISION_CLEAR_RANGE):
+                 near_collision_clear_range=NEAR_COLLISION_CLEAR_RANGE,
+                 safety_shield_enabled=False,
+                 safety_stop_range=0.20,
+                 safety_slow_range=0.35):
         self.robot_name = robot_name
         robot_index = int(robot_name[-1]) if robot_name[-1:].isdigit() else 0
         self.experiment_seed = int(experiment_seed) + robot_index
@@ -112,6 +117,11 @@ class RobotAgent(object):
             raise ValueError(
                 'near_collision_clear_range must exceed near_collision_range')
         self.near_collision_active = False
+        self.safety_shield_enabled = bool(safety_shield_enabled)
+        self.safety_stop_range = float(safety_stop_range)
+        self.safety_slow_range = float(safety_slow_range)
+        clearance_speed_scale(
+            math.inf, self.safety_stop_range, self.safety_slow_range)
 
         self.prev_linear = 0.0
         self.prev_angular = 0.0
@@ -173,15 +183,21 @@ class RobotAgent(object):
         if angle_diff > math.pi:
             angle_diff -= 2 * math.pi
 
+        front_clearance = frontal_clearance(
+            ranges, laser_msg.angle_min, laser_msg.angle_increment)
         state = np.array(normalized_laser + [distance, angle_diff, self.prev_linear, self.prev_angular],
                           dtype=np.float32)
-        return state.reshape(1, STATE_DIM), (x, y), distance
+        return state.reshape(1, STATE_DIM), (x, y), distance, front_clearance
 
     def step(self, actor_model):
-        state, pos, distance = self.build_state()
+        state, pos, distance, front_clearance = self.build_state()
         action = actor_model.predict(state, verbose=0)
         angular = float(action[0][0])
         linear = float(action[0][1]) * 0.26
+        if self.safety_shield_enabled:
+            linear *= clearance_speed_scale(
+                front_clearance, self.safety_stop_range,
+                self.safety_slow_range)
 
         cmd = Twist()
         cmd.linear.x = linear
@@ -216,15 +232,27 @@ def main():
         '~near_collision_range', NEAR_COLLISION_RANGE))
     near_collision_clear_range = float(rospy.get_param(
         '~near_collision_clear_range', NEAR_COLLISION_CLEAR_RANGE))
+    safety_shield_enabled = bool(rospy.get_param(
+        '~safety_shield_enabled', False))
+    safety_stop_range = float(rospy.get_param(
+        '~safety_stop_range', 0.20))
+    safety_slow_range = float(rospy.get_param(
+        '~safety_slow_range', 0.35))
     agent = RobotAgent(
         robot_name, experiment_seed=experiment_seed,
         near_collision_range=near_collision_range,
-        near_collision_clear_range=near_collision_clear_range)
+        near_collision_clear_range=near_collision_clear_range,
+        safety_shield_enabled=safety_shield_enabled,
+        safety_stop_range=safety_stop_range,
+        safety_slow_range=safety_slow_range)
     rospy.loginfo('[%s] experiment_seed=%d (robot seed=%d)',
                   robot_name, experiment_seed, agent.experiment_seed)
     rospy.loginfo('[%s] near-collision hysteresis: event<=%.3fm, clear>=%.3fm',
                   robot_name, near_collision_range,
                   near_collision_clear_range)
+    rospy.loginfo('[%s] safety shield: enabled=%s, stop<=%.3fm, full-speed>=%.3fm',
+                  robot_name, safety_shield_enabled,
+                  safety_stop_range, safety_slow_range)
 
     rospy.loginfo("[%s] waiting for first laser/model_states message...", robot_name)
     agent.laser_ig.get_msg(timeout=10.0)

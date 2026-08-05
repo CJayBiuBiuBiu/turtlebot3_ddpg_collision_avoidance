@@ -76,8 +76,19 @@ if ! timeout 2s xdpyinfo >/dev/null 2>&1; then
   render_prefix=(xvfb-run -a -s "-screen 0 1280x720x24")
 fi
 checkpoint_initial_state="absent_random_initialisation"
+checkpoint_initial_sha256=""
+checkpoint_initial_update="0"
 if [[ -f "${checkpoint}" ]]; then
   checkpoint_initial_state="existing_checkpoint_resume"
+  checkpoint_initial_sha256="$(sha256sum "${checkpoint}" | awk '{print $1}')"
+  checkpoint_initial_update="$(python3 - "${checkpoint}" <<'PY'
+import sys
+import torch
+
+payload = torch.load(sys.argv[1], map_location='cpu', weights_only=False)
+print(int(payload.get('metadata', {}).get('updates', 0)))
+PY
+)"
 fi
 printf '%s\n' \
   'field,value' \
@@ -91,6 +102,8 @@ printf '%s\n' \
   "render_backend,${render_backend}" \
   "checkpoint,${checkpoint}" \
   "checkpoint_initial_state,${checkpoint_initial_state}" \
+  "checkpoint_initial_sha256,${checkpoint_initial_sha256}" \
+  "checkpoint_initial_update,${checkpoint_initial_update}" \
   >"${output_dir}/training_manifest.csv"
 
 cleanup_ros() {

@@ -36,6 +36,10 @@
        doc="Laser-clearance threshold that starts one proximity event"/>
   <arg name="near_collision_clear_range" default="0.25"
        doc="Higher threshold that rearms the proximity event detector"/>
+  <arg name="safety_shield_enabled" default="false"
+       doc="Scale forward DDPG speed when frontal laser clearance is small"/>
+  <arg name="safety_stop_range" default="0.20"/>
+  <arg name="safety_slow_range" default="0.35"/>
   <arg name="selection_mode" default="execution_aware"
        doc="geometric, vision, execution_aware, adaptive_execution_aware, mappo, mappo_hybrid, or mappo_adaptive_hybrid"/>
   <arg name="vision_enabled" default="true"
@@ -145,6 +149,9 @@
     <param name="near_collision_range" value="$(arg near_collision_range)"/>
     <param name="near_collision_clear_range"
            value="$(arg near_collision_clear_range)"/>
+    <param name="safety_shield_enabled" value="$(arg safety_shield_enabled)"/>
+    <param name="safety_stop_range" value="$(arg safety_stop_range)"/>
+    <param name="safety_slow_range" value="$(arg safety_slow_range)"/>
   </node>
   <node pkg="turtlebot_ddpg"
         type="multi_robot_explorer_node.py"
@@ -153,6 +160,9 @@
     <param name="near_collision_range" value="$(arg near_collision_range)"/>
     <param name="near_collision_clear_range"
            value="$(arg near_collision_clear_range)"/>
+    <param name="safety_shield_enabled" value="$(arg safety_shield_enabled)"/>
+    <param name="safety_stop_range" value="$(arg safety_stop_range)"/>
+    <param name="safety_slow_range" value="$(arg safety_slow_range)"/>
   </node>
   <node pkg="turtlebot_ddpg"
         type="multi_robot_explorer_node.py"
@@ -161,6 +171,9 @@
     <param name="near_collision_range" value="$(arg near_collision_range)"/>
     <param name="near_collision_clear_range"
            value="$(arg near_collision_clear_range)"/>
+    <param name="safety_shield_enabled" value="$(arg safety_shield_enabled)"/>
+    <param name="safety_stop_range" value="$(arg safety_stop_range)"/>
+    <param name="safety_slow_range" value="$(arg safety_slow_range)"/>
   </node>
 
   <node if="$(arg start_smoke_policy)"

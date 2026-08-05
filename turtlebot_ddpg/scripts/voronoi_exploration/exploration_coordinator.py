@@ -1052,6 +1052,7 @@ class Coordinator(object):
             observation.header = Header(stamp=stamp, frame_id='map')
             observation.robot_name = name
             observation.coverage_pct = coverage
+            observation.has_active_goal = self.current_goal.get(name) is not None
             observation.robot_pose = Pose2D(x=x, y=y, theta=self.yaws.get(name, 0.0))
             local_bev = self._local_bev_message(name)
             local_bev.header.stamp = stamp

@@ -56,9 +56,10 @@ if [[ "${method_filter}" != "all" ]]; then
     improvement_pair) methods=(mappo_hybrid mappo_tail) ;;
     stack_ablation) methods=(mappo_vision mappo_hybrid mappo_tail) ;;
     deployment_pair) methods=(mappo_tail mappo_tail_decentralized) ;;
+    safety_pair) methods=(mappo_tail mappo_tail_safe) ;;
     improvement_ablation) methods=(geometric execution_aware adaptive_execution_aware mappo_hybrid mappo_tail mappo_adaptive_tail) ;;
     hu_ablation) methods=(geometric execution_aware mappo_no_vision mappo_vision mappo_hybrid) ;;
-    geometric|execution_aware|adaptive_execution_aware|mappo_no_vision|mappo_vision|mappo_hybrid|mappo_tail|mappo_tail_decentralized|mappo_adaptive_tail|mappo_adaptive_tail_decentralized) methods=("${method_filter}") ;;
+    geometric|execution_aware|adaptive_execution_aware|mappo_no_vision|mappo_vision|mappo_hybrid|mappo_tail|mappo_tail_safe|mappo_tail_decentralized|mappo_adaptive_tail|mappo_adaptive_tail_decentralized) methods=("${method_filter}") ;;
     *) echo "Unknown method filter: ${method_filter}" >&2; exit 2 ;;
   esac
 fi
@@ -147,6 +148,8 @@ printf '%s\n' \
   "tail_completion_coverage,${tail_completion_coverage}" \
   "vision_feature_scale,${vision_feature_scale}" \
   "execution_path_cost_mode,${execution_path_cost_mode}" \
+  'safety_shield_stop_range_m,0.20' \
+  'safety_shield_slow_range_m,0.35' \
   >"${output_dir}/experiment_manifest.csv"
 
 cleanup_ros() {
@@ -225,7 +228,7 @@ if abs(recomputed_coverage - reported_coverage) > 0.02:
         (method, reported_coverage, recomputed_coverage))
 if len(last.get('coverage_mask_sha256', '')) != 64:
     raise SystemExit('%s has no coverage-mask fingerprint' % method)
-if method in ('mappo_vision', 'mappo_hybrid', 'mappo_tail', 'mappo_tail_decentralized', 'mappo_adaptive_tail', 'mappo_adaptive_tail_decentralized') and int(last.get('vision_ready_robots', 0) or 0) != 3:
+if method in ('mappo_vision', 'mappo_hybrid', 'mappo_tail', 'mappo_tail_safe', 'mappo_tail_decentralized', 'mappo_adaptive_tail', 'mappo_adaptive_tail_decentralized') and int(last.get('vision_ready_robots', 0) or 0) != 3:
     raise SystemExit('%s did not receive all three camera streams' % method)
 if method.startswith('mappo_') and int(last.get('policy_actions_received', 0) or 0) <= 0:
     raise SystemExit('%s did not receive any actor actions' % method)
@@ -237,6 +240,14 @@ PY
     for robot in robot1 robot2 robot3; do
       if ! grep -Fq "actors=${robot} " "${launch_log}"; then
         echo "[hu_eval] ${method} did not start the ${robot} actor process" >&2
+        return 1
+      fi
+    done
+  fi
+  if [[ "${method}" == "mappo_tail_safe" ]]; then
+    for robot in robot1 robot2 robot3; do
+      if ! grep -Fq "[${robot}] safety shield: enabled=True" "${launch_log}"; then
+        echo "[hu_eval] ${method} did not enable the ${robot} safety shield" >&2
         return 1
       fi
     done
@@ -256,10 +267,12 @@ run_method() {
   local network_policy=false
   local decentralized_actor_nodes=false
   local tail_completion_enabled=false
+  local safety_shield_enabled=false
 
   if [[ "${method}" == "mappo_no_vision" ||
         "${method}" == "mappo_vision" || "${method}" == "mappo_hybrid" ||
         "${method}" == "mappo_tail" ||
+        "${method}" == "mappo_tail_safe" ||
         "${method}" == "mappo_tail_decentralized" ||
         "${method}" == "mappo_adaptive_tail" ||
         "${method}" == "mappo_adaptive_tail_decentralized" ]]; then
@@ -268,6 +281,7 @@ run_method() {
   fi
   if [[ "${method}" == "mappo_vision" || "${method}" == "mappo_hybrid" ||
         "${method}" == "mappo_tail" ||
+        "${method}" == "mappo_tail_safe" ||
         "${method}" == "mappo_tail_decentralized" ||
         "${method}" == "mappo_adaptive_tail" ||
         "${method}" == "mappo_adaptive_tail_decentralized" ]]; then
@@ -277,9 +291,13 @@ run_method() {
     selection_mode=mappo_hybrid
   fi
   if [[ "${method}" == "mappo_tail" ||
+        "${method}" == "mappo_tail_safe" ||
         "${method}" == "mappo_tail_decentralized" ]]; then
     selection_mode=mappo_hybrid
     tail_completion_enabled=true
+  fi
+  if [[ "${method}" == "mappo_tail_safe" ]]; then
+    safety_shield_enabled=true
   fi
   if [[ "${method}" == "mappo_tail_decentralized" ]]; then
     decentralized_actor_nodes=true
@@ -345,6 +363,8 @@ run_method() {
       adaptive_execution_full_coverage:="${adaptive_full_coverage}" \
       tail_completion_enabled:="${tail_completion_enabled}" \
       tail_completion_coverage:="${tail_completion_coverage}" \
+      safety_shield_enabled:="${safety_shield_enabled}" \
+      safety_stop_range:=0.20 safety_slow_range:=0.35 \
       shutdown_on_done:=true \
       metrics_path:="${metrics_path}" >"${launch_log}" 2>&1 &
   local launch_pid=$!
@@ -423,6 +443,11 @@ elif [[ "${method_filter}" == "deployment_pair" ]]; then
     --positive-method mappo_tail_decentralized \
     --negative-method mappo_tail \
     --paired-output decentralized_vs_single_actor.csv
+elif [[ "${method_filter}" == "safety_pair" ]]; then
+  python3 "${summarizer}" "${output_dir}" \
+    --positive-method mappo_tail_safe \
+    --negative-method mappo_tail \
+    --paired-output safety_shield_vs_unshielded.csv
 elif [[ "${method_filter}" == "vision_pair" ]]; then
   python3 "${summarizer}" "${output_dir}" \
     --positive-method mappo_vision \

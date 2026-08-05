@@ -34,7 +34,7 @@ def bar_panel(ax, labels, means, errors, ylabel, title, colors):
 
 def plot_primary(root, output_dir):
     rows = by_method(
-        root / "outputs/evaluation/hu_final_pair_combined_n8_20260804/summary.csv"
+        root / "outputs/evaluation/hu_final_pair_state_mask_n5_20260805/summary.csv"
     )
     methods = ["geometric", "mappo_tail"]
     labels = ["Geometric\nVoronoi", "Final\nhybrid"]
@@ -44,8 +44,11 @@ def plot_primary(root, output_dir):
     success = [value(rows[m], "success_rate_97") * 100 for m in methods]
     bar_panel(axes[0], labels, success, None, "Successful trials (%)", "97% completion", colors)
     axes[0].set_ylim(0, 110)
-    axes[0].text(0, success[0] + 3, "7/8", ha="center", fontsize=9)
-    axes[0].text(1, success[1] + 3, "8/8", ha="center", fontsize=9)
+    for index, method in enumerate(methods):
+        completed = round(success[index] * int(rows[method]["runs"]) / 100.0)
+        axes[0].text(index, success[index] + 3,
+                     "%d/%s" % (completed, rows[method]["runs"]),
+                     ha="center", fontsize=9)
 
     bar_panel(
         axes[1], labels,
@@ -60,24 +63,27 @@ def plot_primary(root, output_dir):
         "Team path (m)", "Path length", colors,
     )
     fig.tight_layout()
-    fig.savefig(output_dir / "hu_aligned_seed_matched_n8.pdf", bbox_inches="tight")
+    fig.savefig(output_dir / "hu_aligned_state_mask_n5.pdf", bbox_inches="tight")
     plt.close(fig)
 
 
 def plot_stack(root, output_dir):
     rows = by_method(
-        root / "outputs/evaluation/stack_ablation_final_checkpoint_20260804_v1/summary.csv"
+        root / "outputs/evaluation/stack_ablation_combined_n5_20260805/summary.csv"
     )
     methods = ["mappo_vision", "mappo_hybrid", "mappo_tail"]
-    labels = ["MAPPO", "MAPPO +\nfallback", "Complete\nstack"]
+    labels = ["MAPPO", "MAPPO +\nrecovery", "Complete\nstack"]
     colors = ["#7a7a7a", "#3f8f5f", "#2468a2"]
 
     fig, axes = plt.subplots(1, 3, figsize=(10.4, 3.25))
     success = [value(rows[m], "success_rate_97") * 100 for m in methods]
     bar_panel(axes[0], labels, success, None, "Successful trials (%)", "97% completion", colors)
     axes[0].set_ylim(0, 110)
-    for index, text_value in enumerate(["2/3", "3/3", "3/3"]):
-        axes[0].text(index, success[index] + 3, text_value, ha="center", fontsize=9)
+    for index, method in enumerate(methods):
+        completed = round(success[index] * int(rows[method]["runs"]) / 100.0)
+        axes[0].text(index, success[index] + 3,
+                     "%d/%s" % (completed, rows[method]["runs"]),
+                     ha="center", fontsize=9)
 
     bar_panel(
         axes[1], labels,
@@ -97,28 +103,50 @@ def plot_stack(root, output_dir):
 
 
 def plot_training(root, output_dir):
-    rows = read_rows(
-        root
-        / "outputs/evaluation/independent_training_seed_study/independent_seed_summary.csv"
-    )
-    labels = [row["training_seed"] for row in rows]
-    colors = ["#2468a2", "#b2473e", "#3f8f5f"]
+    conditions = [
+        ("6 updates\nno state mask", "independent_training_seed_study"),
+        ("6 updates\nstate mask", "independent_training_seed_study_short_masked"),
+        ("18 updates\nstate mask", "independent_training_seed_study_long_masked"),
+    ]
+    condition_rows = []
+    for _, directory in conditions:
+        condition_rows.append(read_rows(
+            root / "outputs/evaluation" / directory / "independent_seed_summary.csv"))
+    seeds = [row["training_seed"] for row in condition_rows[0]]
+    colors = ["#7a7a7a", "#3f8f5f", "#2468a2"]
 
-    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.2))
-    bar_panel(
-        axes[0], labels,
-        [value(row, "coverage_pct_mean") for row in rows],
-        [value(row, "coverage_pct_std") for row in rows],
-        "Coverage after 90 s (%)", "Independent evaluation", colors,
-    )
+    fig, axes = plt.subplots(1, 2, figsize=(9.2, 3.5))
+    x = np.arange(len(seeds))
+    width = 0.24
+    for index, ((label, _), rows, color) in enumerate(
+            zip(conditions, condition_rows, colors)):
+        positions = x + (index - 1) * width
+        axes[0].bar(
+            positions, [value(row, "coverage_pct_mean") for row in rows],
+            width=width,
+            yerr=[value(row, "coverage_pct_std") for row in rows],
+            capsize=3, color=color, label=label)
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels(seeds)
     axes[0].set_xlabel("Training seed")
+    axes[0].set_ylabel("Coverage after 90 s (%)")
+    axes[0].set_title("Independent policy evaluation")
+    axes[0].legend(frameon=False, fontsize=7)
+    axes[0].grid(axis="y", alpha=0.25)
+
+    aggregate_values = []
+    aggregate_errors = []
+    for _, directory in conditions:
+        aggregate = read_rows(
+            root / "outputs/evaluation" / directory /
+            "independent_seed_aggregate.csv")[0]
+        aggregate_values.append(value(aggregate, "coverage_pct_mean_across_seeds"))
+        aggregate_errors.append(value(
+            aggregate, "coverage_pct_mean_between_seed_std"))
     bar_panel(
-        axes[1], labels,
-        [value(row, "last_mean_reward") for row in rows],
-        None,
-        "Last rollout mean reward", "Six-update training endpoint", colors,
-    )
-    axes[1].set_xlabel("Training seed")
+        axes[1], [label for label, _ in conditions], aggregate_values,
+        aggregate_errors, "Coverage after 90 s (%)",
+        "Across-seed mean and variability", colors)
     fig.tight_layout()
     fig.savefig(output_dir / "independent_seed_training.pdf", bbox_inches="tight")
     plt.close(fig)

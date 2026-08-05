@@ -73,9 +73,15 @@ def adapt_observation(observation, spec=None):
         # a healthy low-level navigation goal every decision interval.
         action_mask[index] = bool(token.selectable)
 
-    # CONTINUE and WAIT are always finite fallback actions. This guarantees
-    # that Categorical never receives a row with every action masked.
-    action_mask[spec.max_frontiers:] = True
+    has_active_goal = bool(getattr(observation, 'has_active_goal', False))
+    has_selectable_frontier = bool(action_mask[:spec.max_frontiers].any())
+    # CONTINUE is meaningful only while a low-level target is active. WAIT can
+    # abandon an active target, or keep the policy finite when no frontier is
+    # currently selectable. With an idle robot and valid frontiers, both extra
+    # actions are masked so the policy cannot collapse into doing nothing.
+    action_mask[spec.max_frontiers] = has_active_goal
+    action_mask[spec.max_frontiers + 1] = (
+        has_active_goal or not has_selectable_frontier)
 
     theta = observation.robot_pose.theta
     robot_state = np.asarray([

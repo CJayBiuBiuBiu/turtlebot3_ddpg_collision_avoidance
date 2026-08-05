@@ -71,12 +71,43 @@ class MAPPOTests(unittest.TestCase):
             local_bev=occupancy,
             robot_pose=SimpleNamespace(x=0.0, y=0.0, theta=0.0),
             coverage_pct=10.0,
+            has_active_goal=False,
             frontiers=[token(1, True), token(2, False)],
             teammate_intents=[])
         observation = adapt_observation(message, self.spec)
         self.assertTrue(observation['action_mask'][0])
         self.assertFalse(observation['action_mask'][1])
+        self.assertFalse(observation['action_mask'][-2])
+        self.assertFalse(observation['action_mask'][-1])
+
+    def test_continue_and_wait_require_an_active_goal(self):
+        occupancy = SimpleNamespace(
+            data=[-1] * (64 * 64),
+            info=SimpleNamespace(width=64, height=64))
+        message = SimpleNamespace(
+            local_bev=occupancy,
+            robot_pose=SimpleNamespace(x=0.0, y=0.0, theta=0.0),
+            coverage_pct=10.0,
+            has_active_goal=True,
+            frontiers=[],
+            teammate_intents=[])
+        observation = adapt_observation(message, self.spec)
         self.assertTrue(observation['action_mask'][-2])
+        self.assertTrue(observation['action_mask'][-1])
+
+    def test_wait_is_available_when_no_frontier_or_goal_exists(self):
+        occupancy = SimpleNamespace(
+            data=[-1] * (64 * 64),
+            info=SimpleNamespace(width=64, height=64))
+        message = SimpleNamespace(
+            local_bev=occupancy,
+            robot_pose=SimpleNamespace(x=0.0, y=0.0, theta=0.0),
+            coverage_pct=10.0,
+            has_active_goal=False,
+            frontiers=[],
+            teammate_intents=[])
+        observation = adapt_observation(message, self.spec)
+        self.assertFalse(observation['action_mask'][-2])
         self.assertTrue(observation['action_mask'][-1])
 
     def test_synthetic_rollout_update_is_finite(self):

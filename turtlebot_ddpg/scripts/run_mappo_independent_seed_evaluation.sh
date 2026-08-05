@@ -8,8 +8,8 @@ training_seeds=(1101 2202 3303)
 
 project_root="/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance"
 package_root="${project_root}/turtlebot_ddpg"
-checkpoint_dir="${project_root}/outputs/checkpoints/independent_seed_study"
-evaluation_root="${project_root}/outputs/evaluation/independent_training_seed_study"
+checkpoint_dir="${INDEPENDENT_CHECKPOINT_DIR:-${project_root}/outputs/checkpoints/independent_seed_study}"
+evaluation_root="${INDEPENDENT_EVALUATION_ROOT:-${project_root}/outputs/evaluation/independent_training_seed_study}"
 mkdir -p "${evaluation_root}"
 
 for training_seed in "${training_seeds[@]}"; do

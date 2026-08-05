@@ -29,10 +29,14 @@ def sha256(path):
     return digest.hexdigest()
 
 
-def build_summary(project_root):
+def build_summary(project_root, eval_root=None, checkpoint_root=None):
     training_dirs = sorted((project_root / 'outputs' / 'training').glob('hu_aligned_*'))
-    eval_root = project_root / 'outputs' / 'evaluation' / 'independent_training_seed_study'
-    checkpoint_root = project_root / 'outputs' / 'checkpoints' / 'independent_seed_study'
+    if eval_root is None:
+        eval_root = project_root / 'outputs' / 'evaluation' / 'independent_training_seed_study'
+    if checkpoint_root is None:
+        checkpoint_root = project_root / 'outputs' / 'checkpoints' / 'independent_seed_study'
+    eval_root = eval_root.resolve()
+    checkpoint_root = checkpoint_root.resolve()
 
     training_by_seed = {}
     for directory in training_dirs:
@@ -40,20 +44,34 @@ def build_summary(project_root):
         if not manifest_path.exists():
             continue
         manifest = read_key_value_csv(manifest_path)
-        if manifest.get('checkpoint_initial_state') != 'absent_random_initialisation':
-            continue
-        training_by_seed[int(manifest['training_seed'])] = (directory, manifest)
+        seed = int(manifest['training_seed'])
+        checkpoint = Path(manifest['checkpoint']).resolve()
+        is_initial = manifest.get('checkpoint_initial_state') == 'absent_random_initialisation'
+        is_target_resume = checkpoint.parent == checkpoint_root
+        if is_initial or is_target_resume:
+            training_by_seed.setdefault(seed, []).append((directory, manifest))
 
     records = []
     for eval_dir in sorted(eval_root.glob('training_seed_*')):
         training_seed = int(eval_dir.name.rsplit('_', 1)[-1])
         if training_seed not in training_by_seed:
             raise RuntimeError('No from-scratch training manifest for seed %d' % training_seed)
-        training_dir, manifest = training_by_seed[training_seed]
-        training_logs = list(training_dir.glob('*_training.csv'))
-        if len(training_logs) != 1:
-            raise RuntimeError('Expected one training log for seed %d' % training_seed)
-        updates = read_rows(training_logs[0])
+        training_entries = training_by_seed[training_seed]
+        initial_entries = [entry for entry in training_entries
+                           if entry[1].get('checkpoint_initial_state') ==
+                           'absent_random_initialisation']
+        if len(initial_entries) != 1:
+            raise RuntimeError('Expected one from-scratch run for seed %d' % training_seed)
+        manifest = initial_entries[0][1]
+        updates_by_number = {}
+        for training_dir, training_manifest in training_entries:
+            training_logs = list(training_dir.glob('*_training.csv'))
+            if len(training_logs) != 1:
+                raise RuntimeError('Expected one training log in %s' % training_dir)
+            for row in read_rows(training_logs[0]):
+                update_number = int(row.get('update', len(updates_by_number) + 1))
+                updates_by_number[update_number] = row
+        updates = [updates_by_number[key] for key in sorted(updates_by_number)]
         if not updates:
             raise RuntimeError('Training log is empty for seed %d' % training_seed)
 
@@ -63,7 +81,7 @@ def build_summary(project_root):
         rewards = [float(row['mean_reward']) for row in updates]
         records.append({
             'training_seed': training_seed,
-            'updates': len(updates),
+            'updates': max(updates_by_number),
             'first_mean_reward': rewards[0],
             'last_mean_reward': rewards[-1],
             'best_mean_reward': max(rewards),
@@ -79,6 +97,7 @@ def build_summary(project_root):
             'checkpoint_sha256': sha256(checkpoint),
             'render_backend': manifest['render_backend'],
             'checkpoint_initial_state': manifest['checkpoint_initial_state'],
+            'training_segments': len(training_entries),
         })
     if not records:
         raise RuntimeError('No independent-seed evaluation directories found')
@@ -120,8 +139,11 @@ def main():
     parser.add_argument(
         '--project-root', type=Path,
         default=Path('/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance'))
+    parser.add_argument('--evaluation-root', type=Path)
+    parser.add_argument('--checkpoint-root', type=Path)
     args = parser.parse_args()
-    eval_root, records = build_summary(args.project_root)
+    eval_root, records = build_summary(
+        args.project_root, args.evaluation_root, args.checkpoint_root)
     per_seed_path, aggregate_path = write_outputs(eval_root, records)
     print('per-seed summary:', per_seed_path)
     print('aggregate summary:', aggregate_path)
