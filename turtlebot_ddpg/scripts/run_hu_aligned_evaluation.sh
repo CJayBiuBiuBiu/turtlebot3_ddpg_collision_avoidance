@@ -14,7 +14,11 @@ adaptive_start_coverage="${ADAPTIVE_EXECUTION_START_COVERAGE:-40.0}"
 adaptive_full_coverage="${ADAPTIVE_EXECUTION_FULL_COVERAGE:-90.0}"
 tail_completion_coverage="${TAIL_COMPLETION_COVERAGE:-90.0}"
 vision_feature_scale="${VISION_FEATURE_SCALE:-1.0}"
+vision_scoring_mode="${VISION_SCORING_MODE:-projected_obstacle}"
 execution_path_cost_mode="${EXECUTION_PATH_COST_MODE:-euclidean}"
+pose_source="${POSE_SOURCE:-gazebo_truth}"
+timed_memory_ttl="${TIMED_MEMORY_TTL:-90.0}"
+persistent_memory_ttl="${PERSISTENT_MEMORY_TTL:-1000000000.0}"
 if ! [[ "${repeats}" =~ ^[1-9][0-9]*$ &&
         "${episode_seconds}" =~ ^[1-9][0-9]*$ &&
         "${coverage_threshold}" =~ ^[0-9]+([.][0-9]+)?$ &&
@@ -53,13 +57,16 @@ if [[ "${method_filter}" != "all" ]]; then
     execution_pair) methods=(geometric execution_aware) ;;
     core_vision_ablation) methods=(geometric execution_aware mappo_no_vision mappo_vision) ;;
     vision_pair) methods=(mappo_no_vision mappo_vision) ;;
+    gated_vision_pair) methods=(mappo_no_vision mappo_gated_vision) ;;
+    memory_ablation) methods=(mappo_timed_memory mappo_persistent_memory) ;;
+    pose_source_pair) methods=(mappo_tail mappo_tail_wheel_odom) ;;
     improvement_pair) methods=(mappo_hybrid mappo_tail) ;;
     stack_ablation) methods=(mappo_vision mappo_hybrid mappo_tail) ;;
     deployment_pair) methods=(mappo_tail mappo_tail_decentralized) ;;
     safety_pair) methods=(mappo_tail mappo_tail_safe) ;;
     improvement_ablation) methods=(geometric execution_aware adaptive_execution_aware mappo_hybrid mappo_tail mappo_adaptive_tail) ;;
     hu_ablation) methods=(geometric execution_aware mappo_no_vision mappo_vision mappo_hybrid) ;;
-    geometric|execution_aware|adaptive_execution_aware|mappo_no_vision|mappo_vision|mappo_hybrid|mappo_tail|mappo_tail_safe|mappo_tail_decentralized|mappo_adaptive_tail|mappo_adaptive_tail_decentralized) methods=("${method_filter}") ;;
+    geometric|execution_aware|adaptive_execution_aware|mappo_no_vision|mappo_vision|mappo_gated_vision|mappo_timed_memory|mappo_persistent_memory|mappo_hybrid|mappo_tail|mappo_tail_wheel_odom|mappo_tail_safe|mappo_tail_decentralized|mappo_adaptive_tail|mappo_adaptive_tail_decentralized) methods=("${method_filter}") ;;
     *) echo "Unknown method filter: ${method_filter}" >&2; exit 2 ;;
   esac
 fi
@@ -147,7 +154,11 @@ printf '%s\n' \
   "adaptive_execution_full_coverage,${adaptive_full_coverage}" \
   "tail_completion_coverage,${tail_completion_coverage}" \
   "vision_feature_scale,${vision_feature_scale}" \
+  "vision_scoring_mode_default,${vision_scoring_mode}" \
   "execution_path_cost_mode,${execution_path_cost_mode}" \
+  "pose_source_default,${pose_source}" \
+  "timed_memory_ttl_s,${timed_memory_ttl}" \
+  "persistent_memory_ttl_s,${persistent_memory_ttl}" \
   'safety_shield_stop_range_m,0.20' \
   'safety_shield_slow_range_m,0.35' \
   >"${output_dir}/experiment_manifest.csv"
@@ -175,6 +186,7 @@ validate_run() {
   local metrics_path="$1"
   local launch_log="$2"
   local method="$3"
+  local expected_pose_source="${4:-gazebo_truth}"
   if [[ ! -s "${metrics_path}" ]]; then
     echo "[hu_eval] ${method} produced no metrics" >&2
     return 1
@@ -185,11 +197,11 @@ validate_run() {
       "${launch_log}" | tail -20 >&2
     return 1
   fi
-  if ! python3 - "${metrics_path}" "${method}" "${episode_seconds}" "${world_profile}" <<'PY'
+  if ! python3 - "${metrics_path}" "${method}" "${episode_seconds}" "${world_profile}" "${expected_pose_source}" <<'PY'
 import csv
 import sys
 
-path, method, episode_seconds, expected_world_profile = sys.argv[1:]
+path, method, episode_seconds, expected_world_profile, expected_pose_source = sys.argv[1:]
 episode_seconds = float(episode_seconds)
 with open(path, newline='') as stream:
     rows = list(csv.DictReader(stream))
@@ -228,10 +240,14 @@ if abs(recomputed_coverage - reported_coverage) > 0.02:
         (method, reported_coverage, recomputed_coverage))
 if len(last.get('coverage_mask_sha256', '')) != 64:
     raise SystemExit('%s has no coverage-mask fingerprint' % method)
-if method in ('mappo_vision', 'mappo_hybrid', 'mappo_tail', 'mappo_tail_safe', 'mappo_tail_decentralized', 'mappo_adaptive_tail', 'mappo_adaptive_tail_decentralized') and int(last.get('vision_ready_robots', 0) or 0) != 3:
+if method in ('mappo_vision', 'mappo_gated_vision', 'mappo_timed_memory', 'mappo_persistent_memory', 'mappo_hybrid', 'mappo_tail', 'mappo_tail_wheel_odom', 'mappo_tail_safe', 'mappo_tail_decentralized', 'mappo_adaptive_tail', 'mappo_adaptive_tail_decentralized') and int(last.get('vision_ready_robots', 0) or 0) != 3:
     raise SystemExit('%s did not receive all three camera streams' % method)
 if method.startswith('mappo_') and int(last.get('policy_actions_received', 0) or 0) <= 0:
     raise SystemExit('%s did not receive any actor actions' % method)
+if last.get('pose_source', 'gazebo_truth') != expected_pose_source:
+    raise SystemExit(
+        '%s used pose source %s instead of %s' %
+        (method, last.get('pose_source'), expected_pose_source))
 PY
   then
     return 1
@@ -268,10 +284,17 @@ run_method() {
   local decentralized_actor_nodes=false
   local tail_completion_enabled=false
   local safety_shield_enabled=false
+  local method_vision_scoring_mode="${vision_scoring_mode}"
+  local method_pose_source="${pose_source}"
+  local method_blacklist_ttl="${timed_memory_ttl}"
 
   if [[ "${method}" == "mappo_no_vision" ||
         "${method}" == "mappo_vision" || "${method}" == "mappo_hybrid" ||
+        "${method}" == "mappo_gated_vision" ||
+        "${method}" == "mappo_timed_memory" ||
+        "${method}" == "mappo_persistent_memory" ||
         "${method}" == "mappo_tail" ||
+        "${method}" == "mappo_tail_wheel_odom" ||
         "${method}" == "mappo_tail_safe" ||
         "${method}" == "mappo_tail_decentralized" ||
         "${method}" == "mappo_adaptive_tail" ||
@@ -279,8 +302,13 @@ run_method() {
     selection_mode=mappo
     network_policy=true
   fi
-  if [[ "${method}" == "mappo_vision" || "${method}" == "mappo_hybrid" ||
+  if [[ "${method}" == "mappo_vision" ||
+        "${method}" == "mappo_gated_vision" ||
+        "${method}" == "mappo_timed_memory" ||
+        "${method}" == "mappo_persistent_memory" ||
+        "${method}" == "mappo_hybrid" ||
         "${method}" == "mappo_tail" ||
+        "${method}" == "mappo_tail_wheel_odom" ||
         "${method}" == "mappo_tail_safe" ||
         "${method}" == "mappo_tail_decentralized" ||
         "${method}" == "mappo_adaptive_tail" ||
@@ -291,6 +319,7 @@ run_method() {
     selection_mode=mappo_hybrid
   fi
   if [[ "${method}" == "mappo_tail" ||
+        "${method}" == "mappo_tail_wheel_odom" ||
         "${method}" == "mappo_tail_safe" ||
         "${method}" == "mappo_tail_decentralized" ]]; then
     selection_mode=mappo_hybrid
@@ -301,6 +330,15 @@ run_method() {
   fi
   if [[ "${method}" == "mappo_tail_decentralized" ]]; then
     decentralized_actor_nodes=true
+  fi
+  if [[ "${method}" == "mappo_gated_vision" ]]; then
+    method_vision_scoring_mode=projected_obstacle_gated
+  fi
+  if [[ "${method}" == "mappo_persistent_memory" ]]; then
+    method_blacklist_ttl="${persistent_memory_ttl}"
+  fi
+  if [[ "${method}" == "mappo_tail_wheel_odom" ]]; then
+    method_pose_source=wheel_odometry
   fi
   if [[ "${method}" == "mappo_adaptive_tail" ||
         "${method}" == "mappo_adaptive_tail_decentralized" ]]; then
@@ -314,7 +352,7 @@ run_method() {
   local metrics_path="${output_dir}/repeat_${repeat_id}_${method}.csv"
   local launch_log="${output_dir}/repeat_${repeat_id}_${method}.log"
   if [[ -s "${metrics_path}" && -s "${launch_log}" ]] &&
-      validate_run "${metrics_path}" "${launch_log}" "${method}"; then
+      validate_run "${metrics_path}" "${launch_log}" "${method}" "${method_pose_source}"; then
     echo "[hu_eval] repeat ${repeat_id}, seed ${experiment_seed}, method ${method}: already valid, skipping"
     return
   fi
@@ -339,9 +377,10 @@ run_method() {
       robot3_x:=0.8 robot3_y:=4.0 robot3_yaw:=-1.5708 \
       selection_mode:="${selection_mode}" \
       mapping_mode:=laser_scan \
+      pose_source:="${method_pose_source}" \
       execution_path_cost_mode:="${execution_path_cost_mode}" \
       vision_enabled:="${vision_enabled}" \
-      vision_scoring_mode:=projected_obstacle \
+      vision_scoring_mode:="${method_vision_scoring_mode}" \
       vision_feature_scale:="${vision_feature_scale}" \
       start_smoke_policy:=false \
       start_network_policy:="${network_policy}" \
@@ -363,6 +402,7 @@ run_method() {
       adaptive_execution_full_coverage:="${adaptive_full_coverage}" \
       tail_completion_enabled:="${tail_completion_enabled}" \
       tail_completion_coverage:="${tail_completion_coverage}" \
+      stuck_blacklist_ttl:="${method_blacklist_ttl}" \
       safety_shield_enabled:="${safety_shield_enabled}" \
       safety_stop_range:=0.20 safety_slow_range:=0.35 \
       shutdown_on_done:=true \
@@ -391,7 +431,7 @@ run_method() {
     tail -50 "${launch_log}" >&2
     exit "${status}"
   fi
-  validate_run "${metrics_path}" "${launch_log}" "${method}"
+  validate_run "${metrics_path}" "${launch_log}" "${method}" "${method_pose_source}"
 }
 
 for ((repeat = 1; repeat <= repeats; repeat++)); do
@@ -453,6 +493,21 @@ elif [[ "${method_filter}" == "vision_pair" ]]; then
     --positive-method mappo_vision \
     --negative-method mappo_no_vision \
     --paired-output vision_feature_ablation.csv
+elif [[ "${method_filter}" == "gated_vision_pair" ]]; then
+  python3 "${summarizer}" "${output_dir}" \
+    --positive-method mappo_gated_vision \
+    --negative-method mappo_no_vision \
+    --paired-output gated_vision_feature_ablation.csv
+elif [[ "${method_filter}" == "memory_ablation" ]]; then
+  python3 "${summarizer}" "${output_dir}" \
+    --positive-method mappo_timed_memory \
+    --negative-method mappo_persistent_memory \
+    --paired-output timed_vs_persistent_memory.csv
+elif [[ "${method_filter}" == "pose_source_pair" ]]; then
+  python3 "${summarizer}" "${output_dir}" \
+    --positive-method mappo_tail_wheel_odom \
+    --negative-method mappo_tail \
+    --paired-output odometry_vs_gazebo_truth.csv
 elif [[ "${method_filter}" == "execution_pair" ]]; then
   python3 "${summarizer}" "${output_dir}" \
     --positive-method execution_aware \

@@ -45,11 +45,13 @@
   <arg name="vision_enabled" default="true"
        doc="Enable camera openness in assignment costs and policy tokens"/>
   <arg name="vision_scoring_mode" default="projected_obstacle"
-       doc="projected_obstacle (default) or canny (legacy ablation)"/>
+       doc="projected_obstacle (default), projected_obstacle_gated, or canny (legacy ablation)"/>
   <arg name="vision_feature_scale" default="1.0"
        doc="Scale applied to camera openness before it enters frontier costs and MAPPO tokens"/>
   <arg name="mapping_mode" default="laser_scan"
        doc="laser_scan (unknown-map default) or ground_truth_radius (legacy baseline)"/>
+  <arg name="pose_source" default="gazebo_truth"
+       doc="gazebo_truth (controlled benchmark) or wheel_odometry (pose audit)"/>
   <arg name="execution_path_cost_mode" default="euclidean"
        doc="euclidean (checkpoint-compatible default) or line_risk"/>
   <arg name="start_smoke_policy" default="false"
@@ -113,6 +115,16 @@
     <param name="vision_scoring_mode" value="$(arg vision_scoring_mode)"/>
     <param name="vision_feature_scale" value="$(arg vision_feature_scale)"/>
     <param name="mapping_mode" value="$(arg mapping_mode)"/>
+    <param name="pose_source" value="$(arg pose_source)"/>
+    <param name="robot1_initial_x" value="$(arg robot1_x)"/>
+    <param name="robot1_initial_y" value="$(arg robot1_y)"/>
+    <param name="robot1_initial_yaw" value="$(arg robot1_yaw)"/>
+    <param name="robot2_initial_x" value="$(arg robot2_x)"/>
+    <param name="robot2_initial_y" value="$(arg robot2_y)"/>
+    <param name="robot2_initial_yaw" value="$(arg robot2_yaw)"/>
+    <param name="robot3_initial_x" value="$(arg robot3_x)"/>
+    <param name="robot3_initial_y" value="$(arg robot3_y)"/>
+    <param name="robot3_initial_yaw" value="$(arg robot3_yaw)"/>
     <param name="execution_path_cost_mode" value="$(arg execution_path_cost_mode)"/>
     <param name="world_profile" value="$(arg world_profile)"/>
     <param name="coverage_done_threshold" value="$(arg coverage_done_threshold)"/>

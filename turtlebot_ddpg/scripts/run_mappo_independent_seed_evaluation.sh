@@ -4,7 +4,7 @@ set -eo pipefail
 repeats="${1:-3}"
 episode_seconds="${2:-90}"
 evaluation_seed_base="${3:-9400}"
-training_seeds=(1101 2202 3303)
+read -r -a training_seeds <<< "${TRAINING_SEEDS:-1101 2202 3303}"
 
 project_root="/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance"
 package_root="${project_root}/turtlebot_ddpg"

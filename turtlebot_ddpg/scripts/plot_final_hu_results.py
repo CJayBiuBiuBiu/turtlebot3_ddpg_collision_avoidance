@@ -33,6 +33,28 @@ def read_runs(directory):
             rows = list(csv.DictReader(stream))
         if rows:
             runs[match.group(2)][int(match.group(1))] = rows
+    if any(runs.values()):
+        return runs
+
+    provenance_path = os.path.join(directory, 'provenance.csv')
+    if not os.path.exists(provenance_path):
+        return runs
+    by_seed = {}
+    with open(provenance_path, newline='') as stream:
+        for record in csv.DictReader(stream):
+            method = record['method']
+            if method not in runs:
+                continue
+            path = os.path.join(
+                record['source_directory'], record['source_file'])
+            with open(path, newline='') as source:
+                rows = list(csv.DictReader(source))
+            if rows:
+                by_seed.setdefault(int(record['experiment_seed']), {})[method] = rows
+    for repeat, seed in enumerate(sorted(by_seed), 1):
+        if all(method in by_seed[seed] for method in METHODS):
+            for method in METHODS:
+                runs[method][repeat] = by_seed[seed][method]
     return runs
 
 
@@ -47,7 +69,10 @@ def number(row, key, default=0.0):
 
 
 def coverage_series(rows, timeline):
-    elapsed = np.asarray([number(row, 'elapsed_s') for row in rows])
+    elapsed = np.asarray([
+        number(row, 'elapsed_sim_s', number(row, 'elapsed_s'))
+        for row in rows
+    ])
     coverage = np.asarray([number(row, 'coverage_pct') for row in rows])
     return np.interp(timeline, elapsed, coverage,
                      left=coverage[0], right=coverage[-1])
@@ -55,6 +80,10 @@ def coverage_series(rows, timeline):
 
 def final_metric(rows, key):
     return number(rows[-1], key)
+
+
+def final_elapsed(rows):
+    return number(rows[-1], 'elapsed_sim_s', number(rows[-1], 'elapsed_s'))
 
 
 def main():
@@ -99,7 +128,7 @@ def main():
     right_labels = []
     any_failure = False
     for repeat in repeats:
-        durations = [final_metric(runs[method][repeat], 'elapsed_s')
+        durations = [final_elapsed(runs[method][repeat])
                      for method in METHODS]
         completed = [final_metric(runs[method][repeat], 'mission_done') >= 0.5
                      for method in METHODS]

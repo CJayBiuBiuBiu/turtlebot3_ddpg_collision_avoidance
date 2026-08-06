@@ -32,7 +32,7 @@ import numpy as np
 import cv2
 from geometry_msgs.msg import Point, Pose2D
 from std_msgs.msg import Bool, Float32, Header
-from sensor_msgs.msg import Image, LaserScan
+from sensor_msgs.msg import Image, JointState, LaserScan
 from nav_msgs.msg import OccupancyGrid
 from gazebo_msgs.msg import ModelStates
 from turtlebot_ddpg.msg import (
@@ -48,6 +48,7 @@ from safety_metrics import ClearanceTelemetry
 from scan_mapping import (
     bresenham_cells, clear_robot_footprints, update_grid_from_scan)
 from vision_scoring import openness_from_image, VISION_SCORING_MODES
+from wheel_odometry import integrate_wheel_positions
 
 ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
 ROBOT_COLORS = ['red', 'blue', 'green']
@@ -62,6 +63,9 @@ COORDINATOR_SELECTION_MODES = SELECTION_MODES + \
                               ('adaptive_execution_aware',) + \
                               POLICY_SELECTION_MODES
 MAPPING_MODES = ('ground_truth_radius', 'laser_scan')
+POSE_SOURCES = ('gazebo_truth', 'wheel_odometry')
+WHEEL_RADIUS = 0.033
+WHEEL_SEPARATION = 0.287
 
 GRID_RES = 0.2
 WORLD_PROFILES = {
@@ -194,12 +198,13 @@ STATUS_WRITE_PERIOD = 1.0  # seconds
 METRIC_FIELDS = [
     'run_id', 'experiment_seed', 'wall_time', 'elapsed_s',
     'elapsed_wall_s', 'elapsed_sim_s', 'observed_real_time_factor',
-    'selection_mode', 'mapping_mode',
+    'selection_mode', 'mapping_mode', 'pose_source',
     'world_profile',
     'coverage_pct', 'coverage_explored_cells',
     'coverage_explorable_cells', 'truth_obstacle_cells',
     'coverage_mask_sha256', 'grid_resolution_m',
     'raw_frontiers', 'candidate_frontiers', 'blacklisted_spots',
+    'stuck_blacklist_ttl_s',
     'goal_assignments', 'goals_reached', 'no_path_fallbacks',
     'no_path_start_occupied', 'no_path_goal_occupied',
     'no_path_disconnected',
@@ -208,6 +213,8 @@ METRIC_FIELDS = [
     'near_collision_sample_ratio', 'minimum_laser_clearance_m',
     'near_collision_range_m', 'near_collision_clear_range_m',
     'path_length_total_m', 'execution_path_cost_mode',
+    'robot1_x', 'robot1_y', 'robot2_x', 'robot2_y',
+    'robot3_x', 'robot3_y',
     'vision_enabled', 'vision_scoring_mode', 'vision_feature_scale',
     'vision_ready_robots',
     'vision_image_mean_openness', 'vision_token_mean_openness',
@@ -370,6 +377,9 @@ class Coordinator(object):
         self.mapping_mode = rospy.get_param('~mapping_mode', 'ground_truth_radius')
         if self.mapping_mode not in MAPPING_MODES:
             raise ValueError('mapping_mode must be one of %s' % (MAPPING_MODES,))
+        self.pose_source = rospy.get_param('~pose_source', 'gazebo_truth')
+        if self.pose_source not in POSE_SOURCES:
+            raise ValueError('pose_source must be one of %s' % (POSE_SOURCES,))
         self.scan_mapping_range = float(rospy.get_param(
             '~scan_mapping_range', SENSING_RANGE))
         self.scan_ray_stride = max(1, int(rospy.get_param('~scan_ray_stride', 4)))
@@ -480,8 +490,21 @@ class Coordinator(object):
             ttl_seconds=self.stuck_blacklist_ttl,
             merge_radius=0.5 * STUCK_BLACKLIST_RADIUS)
 
-        self.positions = {}       # name -> (x, y)
-        self.yaws = {}            # name -> heading (rad)
+        initial_poses = dict(
+            (name, (
+                float(rospy.get_param('~%s_initial_x' % name, 0.0)),
+                float(rospy.get_param('~%s_initial_y' % name, 0.0)),
+                float(rospy.get_param('~%s_initial_yaw' % name, 0.0))))
+            for name in ROBOT_NAMES)
+        if self.pose_source == 'wheel_odometry':
+            self.positions = dict(
+                (name, pose[:2]) for name, pose in initial_poses.items())
+            self.yaws = dict(
+                (name, pose[2]) for name, pose in initial_poses.items())
+        else:
+            self.positions = {}       # name -> (x, y)
+            self.yaws = {}            # name -> heading (rad)
+        self.last_wheel_positions = {}
         self.vision_scores = {}   # name -> (left, centre, right) openness in [0,1]
         self.vision_token_count = 0
         self.vision_token_nonzero_count = 0
@@ -561,8 +584,13 @@ class Coordinator(object):
             for name in ROBOT_NAMES
         }
 
-        rospy.Subscriber('/gazebo/model_states', ModelStates, self._model_states_cb)
+        if self.pose_source == 'gazebo_truth':
+            rospy.Subscriber(
+                '/gazebo/model_states', ModelStates, self._model_states_cb)
         for name in ROBOT_NAMES:
+            if self.pose_source == 'wheel_odometry':
+                rospy.Subscriber('/%s/joint_states' % name, JointState,
+                                 self._joint_states_cb, callback_args=name)
             rospy.Subscriber('/%s/stuck_event' % name, Point, self._stuck_event_cb,
                              callback_args=name)
             rospy.Subscriber('/%s/near_collision_event' % name, Bool,
@@ -591,9 +619,10 @@ class Coordinator(object):
         self.no_frontier_since = None
         self._open_metrics_file()
         rospy.on_shutdown(self._close_metrics_file)
-        rospy.loginfo('[coordinator] selection_mode=%s, mapping_mode=%s, world_profile=%s, clustered_frontiers=%s, metrics=%s',
-                      self.selection_mode, self.mapping_mode, self.world_profile,
-                      self.cluster_frontiers, self.metrics_path)
+        rospy.loginfo('[coordinator] selection_mode=%s, mapping_mode=%s, pose_source=%s, world_profile=%s, clustered_frontiers=%s, metrics=%s',
+                      self.selection_mode, self.mapping_mode, self.pose_source,
+                      self.world_profile, self.cluster_frontiers,
+                      self.metrics_path)
 
     def _camera_cb(self, msg, name):
         if not self.vision_enabled:
@@ -735,19 +764,42 @@ class Coordinator(object):
                 idx = msg.name.index(name)
                 p = msg.pose[idx].position
                 o = msg.pose[idx].orientation
-                self.positions[name] = (p.x, p.y)
                 siny_cosp = 2 * (o.w * o.z + o.x * o.y)
                 cosy_cosp = 1 - 2 * (o.y * o.y + o.z * o.z)
-                self.yaws[name] = math.atan2(siny_cosp, cosy_cosp)
-                if name not in self.first_node_pos:
-                    self.first_node_pos[name] = (p.x, p.y)
-                previous = self.previous_positions.get(name)
-                if previous is not None:
-                    step = math.hypot(p.x - previous[0], p.y - previous[1])
-                    # Ignore Gazebo spawn/reset jumps in path-length metrics.
-                    if step < 1.0:
-                        self.path_length[name] += step
-                self.previous_positions[name] = (p.x, p.y)
+                self._update_pose(
+                    name, p.x, p.y, math.atan2(siny_cosp, cosy_cosp))
+
+    def _joint_states_cb(self, msg, name):
+        try:
+            left_index = msg.name.index('wheel_left_joint')
+            right_index = msg.name.index('wheel_right_joint')
+            left = float(msg.position[left_index])
+            right = float(msg.position[right_index])
+        except (ValueError, IndexError):
+            return
+        previous = self.last_wheel_positions.get(name)
+        self.last_wheel_positions[name] = (left, right)
+        if previous is None:
+            return
+        x, y = self.positions[name]
+        yaw = self.yaws[name]
+        next_pose = integrate_wheel_positions(
+            (x, y, yaw), previous, (left, right),
+            WHEEL_RADIUS, WHEEL_SEPARATION)
+        self._update_pose(name, *next_pose)
+
+    def _update_pose(self, name, x, y, yaw):
+        self.positions[name] = (x, y)
+        self.yaws[name] = yaw
+        if name not in self.first_node_pos:
+            self.first_node_pos[name] = (x, y)
+        previous = self.previous_positions.get(name)
+        if previous is not None:
+            step = math.hypot(x - previous[0], y - previous[1])
+            # Ignore spawn/reset jumps in path-length metrics.
+            if step < 1.0:
+                self.path_length[name] += step
+        self.previous_positions[name] = (x, y)
 
     def vision_bias(self, robot_pos, robot_yaw, candidate_pos, name):
         """Openness bonus for a candidate frontier that falls within the
@@ -1177,6 +1229,7 @@ class Coordinator(object):
                 if observed_real_time_factor is not None else ''),
             'selection_mode': self.selection_mode,
             'mapping_mode': self.mapping_mode,
+            'pose_source': self.pose_source,
             'world_profile': self.world_profile,
             'coverage_pct': '%.4f' % coverage,
             'coverage_explored_cells': explored_cells,
@@ -1187,6 +1240,7 @@ class Coordinator(object):
             'raw_frontiers': len(raw_frontiers),
             'candidate_frontiers': len(candidate_frontiers),
             'blacklisted_spots': self.blacklist.count(self._control_now()),
+            'stuck_blacklist_ttl_s': '%.3f' % self.stuck_blacklist_ttl,
             'goal_assignments': self.goal_assignments,
             'goals_reached': self.goals_reached,
             'no_path_fallbacks': self.no_path_fallbacks,
@@ -1206,6 +1260,12 @@ class Coordinator(object):
                 '%.4f' % self.near_collision_clear_range),
             'path_length_total_m': '%.4f' % sum(self.path_length.values()),
             'execution_path_cost_mode': self.execution_path_cost_mode,
+            'robot1_x': self.positions.get('robot1', ('', ''))[0],
+            'robot1_y': self.positions.get('robot1', ('', ''))[1],
+            'robot2_x': self.positions.get('robot2', ('', ''))[0],
+            'robot2_y': self.positions.get('robot2', ('', ''))[1],
+            'robot3_x': self.positions.get('robot3', ('', ''))[0],
+            'robot3_y': self.positions.get('robot3', ('', ''))[1],
             'vision_enabled': int(self.vision_enabled),
             'vision_scoring_mode': self.vision_scoring_mode,
             'vision_feature_scale': '%.4f' % self.vision_feature_scale,

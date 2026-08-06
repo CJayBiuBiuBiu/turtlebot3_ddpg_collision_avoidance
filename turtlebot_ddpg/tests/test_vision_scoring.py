@@ -11,7 +11,9 @@ SCRIPT_DIR = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'scripts', 'voronoi_exploration')
 sys.path.insert(0, SCRIPT_DIR)
 
-from vision_scoring import openness_from_image, projected_obstacle_openness
+from vision_scoring import (
+    confidence_gated_projected_obstacle_openness, openness_from_image,
+    projected_obstacle_confidence, projected_obstacle_openness)
 
 
 def synthetic_camera_frame(obstacle_colour):
@@ -53,6 +55,20 @@ class VisionScoringTests(unittest.TestCase):
                         0, 255).astype(np.uint8)
         scores = projected_obstacle_openness(noisy)
         self.assertEqual(int(np.argmax(scores)), 2)
+
+    def test_confidence_gate_preserves_direction_order_for_valid_frame(self):
+        image = synthetic_camera_frame((120, 70, 45))
+        raw = projected_obstacle_openness(image)
+        gated = confidence_gated_projected_obstacle_openness(image)
+        self.assertGreater(projected_obstacle_confidence(image), 0.0)
+        self.assertEqual(np.argsort(raw).tolist(), np.argsort(gated).tolist())
+
+    def test_confidence_gate_neutralises_uniform_frame(self):
+        image = np.full((120, 300, 3), 128, dtype=np.uint8)
+        self.assertEqual(projected_obstacle_confidence(image), 0.0)
+        self.assertEqual(
+            confidence_gated_projected_obstacle_openness(image),
+            (0.0, 0.0, 0.0))
 
     def test_unknown_mode_is_rejected(self):
         with self.assertRaises(ValueError):

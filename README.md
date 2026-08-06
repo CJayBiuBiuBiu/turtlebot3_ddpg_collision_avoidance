@@ -54,9 +54,40 @@ MAPPO_CHECKPOINT=/path/to/mappo_selected_validation_v1.pt \
   turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
   5 900 97 hu_final_pair 9200
 
+# Isolate execution-aware allocation and timed failure memory
+EVAL_WORLD=hu_aligned EXECUTION_PATH_COST_MODE=line_risk \
+  turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
+  5 90 100 execution_pair 9700
+EVAL_WORLD=hu_aligned \
+  turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
+  5 120 100 memory_ablation 9800
+
+# Test confidence-gated camera input and wheel-odometry registration
+EVAL_WORLD=layout_c \
+  turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
+  5 90 100 gated_vision_pair 9900
+EVAL_WORLD=hu_aligned \
+  turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
+  5 90 100 pose_source_pair 9970
+
+# Plot recorded Gazebo trajectories from one evaluation directory
+python turtlebot_ddpg/scripts/plot_gazebo_trajectory.py \
+  outputs/evaluation/pose_source_pair_n5_20260806/repeat_01_mappo_tail_wheel_odom.csv \
+  outputs/evaluation/pose_source_pair_n5_20260806/trajectory_wheel_odom.png
+
 # Run unit tests
-python -m unittest discover -s turtlebot_ddpg/tests -p 'test_*.py' -v
+source /opt/ros/noetic/setup.bash
+source ~/catkin_ws/devel/setup.bash
+~/ddpg_env/bin/python -m unittest discover \
+  -s turtlebot_ddpg/tests -p 'test_*.py' -v
 ```
+
+The pose-source audit integrates TurtleBot3 wheel-joint positions from the
+known initial placement. It removes continuous Gazebo model pose from scan
+registration, but it is not a substitute for loop closure or multi-robot map
+merging. The `projected_obstacle_gated` vision mode suppresses directional
+camera features when frame contrast or sky--floor reference separation is too
+weak.
 
 The validation-selected checkpoint and raw Gazebo outputs are intentionally
 excluded from Git because they are generated research artifacts. The repository
