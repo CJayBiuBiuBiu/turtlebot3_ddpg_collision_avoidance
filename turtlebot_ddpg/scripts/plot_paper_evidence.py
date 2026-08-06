@@ -72,7 +72,7 @@ def plot_stack(root, output_dir):
         root / "outputs/evaluation/stack_ablation_combined_n5_20260805/summary.csv"
     )
     methods = ["mappo_vision", "mappo_hybrid", "mappo_tail"]
-    labels = ["MAPPO", "MAPPO +\nrecovery", "Complete\nstack"]
+    labels = ["MAPPO", "MAPPO +\nfallback", "Complete\nstack"]
     colors = ["#7a7a7a", "#3f8f5f", "#2468a2"]
 
     fig, axes = plt.subplots(1, 3, figsize=(10.4, 3.25))
