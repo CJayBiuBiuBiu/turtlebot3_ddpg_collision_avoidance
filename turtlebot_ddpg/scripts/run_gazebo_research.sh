@@ -10,10 +10,7 @@ case "${selection_mode}" in
     ;;
 esac
 
-source /opt/ros/noetic/setup.bash
-source /usr/share/gazebo/setup.sh
-source /home/ros/catkin_ws/devel/setup.bash
-source /home/ros/ddpg_env/bin/activate
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project_env.sh"
 set -u
 
 start_smoke_policy=false

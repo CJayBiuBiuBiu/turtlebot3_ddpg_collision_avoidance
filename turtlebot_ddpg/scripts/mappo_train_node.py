@@ -6,6 +6,7 @@ import os
 import random
 import sys
 import threading
+from pathlib import Path
 
 import numpy as np
 import rospy
@@ -24,6 +25,8 @@ from turtlebot_ddpg.msg import FrontierAction, FrontierObservation
 
 
 DEFAULT_ROBOTS = ['robot1', 'robot2', 'robot3']
+PROJECT_ROOT = Path(os.environ.get(
+    'TURTLEBOT_DDPG_PROJECT_ROOT', Path(__file__).resolve().parents[2]))
 
 
 class MAPPOTrainerNode(object):
@@ -50,8 +53,8 @@ class MAPPOTrainerNode(object):
         self.update_epochs = int(rospy.get_param('~update_epochs', 5))
         self.minibatch_size = int(rospy.get_param('~minibatch_size', 96))
         self.checkpoint = os.path.expanduser(rospy.get_param(
-            '~checkpoint', '~/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/'
-                           'outputs/checkpoints/mappo_latest.pt'))
+            '~checkpoint', str(PROJECT_ROOT / 'outputs' / 'checkpoints' /
+                               'mappo_latest.pt')))
         self.snapshot_interval = max(
             0, int(rospy.get_param('~snapshot_interval', 5)))
         default_snapshot_dir = os.path.join(
@@ -59,11 +62,11 @@ class MAPPOTrainerNode(object):
         self.snapshot_dir = os.path.expanduser(rospy.get_param(
             '~snapshot_dir', default_snapshot_dir))
         self.training_log = os.path.expanduser(rospy.get_param(
-            '~training_log', '~/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/'
-                             'outputs/mappo_training.csv'))
+            '~training_log', str(PROJECT_ROOT / 'outputs' /
+                                 'mappo_training.csv')))
         self.diagnostics_log = os.path.expanduser(rospy.get_param(
-            '~diagnostics_log', '~/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/'
-                                'outputs/mappo_diagnostics.csv'))
+            '~diagnostics_log', str(PROJECT_ROOT / 'outputs' /
+                                    'mappo_diagnostics.csv')))
 
         self.policy = MAPPO(max_frontiers=self.spec.max_frontiers)
         self.update_count = 0

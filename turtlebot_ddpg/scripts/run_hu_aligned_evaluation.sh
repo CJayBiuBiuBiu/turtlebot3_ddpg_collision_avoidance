@@ -17,6 +17,9 @@ vision_feature_scale="${VISION_FEATURE_SCALE:-1.0}"
 vision_scoring_mode="${VISION_SCORING_MODE:-projected_obstacle}"
 execution_path_cost_mode="${EXECUTION_PATH_COST_MODE:-euclidean}"
 pose_source="${POSE_SOURCE:-gazebo_truth}"
+communication_delay_s="${COMMUNICATION_DELAY_SECONDS:-0.0}"
+communication_drop_probability="${COMMUNICATION_DROP_PROBABILITY:-0.0}"
+communication_bandwidth_bytes_per_s="${COMMUNICATION_BANDWIDTH_BYTES_PER_SECOND:-0.0}"
 timed_memory_ttl="${TIMED_MEMORY_TTL:-90.0}"
 persistent_memory_ttl="${PERSISTENT_MEMORY_TTL:-1000000000.0}"
 if ! [[ "${repeats}" =~ ^[1-9][0-9]*$ &&
@@ -28,14 +31,9 @@ if ! [[ "${repeats}" =~ ^[1-9][0-9]*$ &&
 fi
 wall_timeout_seconds=$((episode_seconds * 2 + 60))
 
-source /opt/ros/noetic/setup.bash
-source /usr/share/gazebo/setup.sh
-source /home/ros/catkin_ws/devel/setup.bash
-source /home/ros/ddpg_env/bin/activate
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project_env.sh"
 set -u
 
-project_root="/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance"
-package_root="${project_root}/turtlebot_ddpg"
 checkpoint="${MAPPO_CHECKPOINT:-${project_root}/outputs/checkpoints/mappo_latest.pt}"
 world_profile="${EVALUATION_WORLD_PROFILE:-hu_aligned}"
 case "${world_profile}" in
@@ -378,6 +376,9 @@ run_method() {
       selection_mode:="${selection_mode}" \
       mapping_mode:=laser_scan \
       pose_source:="${method_pose_source}" \
+      communication_delay_s:="${communication_delay_s}" \
+      communication_drop_probability:="${communication_drop_probability}" \
+      communication_bandwidth_bytes_per_s:="${communication_bandwidth_bytes_per_s}" \
       execution_path_cost_mode:="${execution_path_cost_mode}" \
       vision_enabled:="${vision_enabled}" \
       vision_scoring_mode:="${method_vision_scoring_mode}" \

@@ -15,7 +15,7 @@
   <arg name="physics" default="ode"/>
   <arg name="verbose" default="false"/>
   <arg name="output" default="screen"/>
-  <arg name="world_name" default="/home/swacil/catkin_ws/src/turtlebot/turtlebot_iros/worlds/turtlebot3_modified_corrdior_target.world"/> <!-- Note: the world_name is with respect to GAZEBO_RESOURCE_PATH environmental variable -->
+  <arg name="world_name" default="$(find turtlebot_ddpg)/worlds/turtlebot3_modified_corrdior_target.world"/>
   <arg name="respawn_gazebo" default="false"/>
   <arg name="use_clock_frequency" default="false"/>
   <arg name="pub_clock_frequency" default="100"/>

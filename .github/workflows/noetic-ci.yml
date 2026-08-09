@@ -1,0 +1,48 @@
+name: ROS Noetic checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    container: ros:noetic-ros-base-focal
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: catkin_ws/src/turtlebot3_ddpg_collision_avoidance
+      - name: Install dependencies
+        shell: bash
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            python3-pip python3-opencv \
+            ros-noetic-gazebo-msgs ros-noetic-nav-msgs
+          python3 -m pip install --no-cache-dir \
+            numpy==1.24.3 scipy==1.10.1 torch==2.4.1+cpu \
+            --extra-index-url https://download.pytorch.org/whl/cpu
+      - name: Build ROS package
+        shell: bash
+        run: |
+          source /opt/ros/noetic/setup.bash
+          cd catkin_ws
+          catkin_make --pkg turtlebot_ddpg
+      - name: Run unit tests
+        shell: bash
+        run: |
+          source /opt/ros/noetic/setup.bash
+          source catkin_ws/devel/setup.bash
+          python3 -m unittest discover \
+            -s catkin_ws/src/turtlebot3_ddpg_collision_avoidance/turtlebot_ddpg/tests \
+            -p 'test_*.py' -v
+      - name: Check shell syntax
+        shell: bash
+        run: |
+          find catkin_ws/src/turtlebot3_ddpg_collision_avoidance/turtlebot_ddpg/scripts \
+            -name '*.sh' -print0 | xargs -0 -n1 bash -n
+      - name: Verify dissertation artifact
+        shell: bash
+        run: |
+          cd catkin_ws/src/turtlebot3_ddpg_collision_avoidance
+          python3 research_artifacts/dissertation_v1/verify_artifact.py

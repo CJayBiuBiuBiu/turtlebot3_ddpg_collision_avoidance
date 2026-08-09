@@ -27,13 +27,9 @@ if [[ "${world_profile}" != "research" && "${world_profile}" != "hu_aligned" ]];
   exit 2
 fi
 
-source /opt/ros/noetic/setup.bash
-source /usr/share/gazebo/setup.sh
-source /home/ros/catkin_ws/devel/setup.bash
-source /home/ros/ddpg_env/bin/activate
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project_env.sh"
 set -u
 
-project_root="/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance"
 run_id="$(date +%Y%m%d_%H%M%S)"
 output_dir="${project_root}/outputs/training/${world_profile}_${run_id}"
 checkpoint="${project_root}/outputs/checkpoints/mappo_latest.pt"

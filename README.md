@@ -41,6 +41,10 @@ multi-computer deployment.
 ## Main entry points
 
 ```bash
+# Python environment used by the dissertation experiments
+python3 -m venv ~/ddpg_env --system-site-packages
+~/ddpg_env/bin/pip install -r requirements-noetic.txt
+
 # Build
 cd ~/catkin_ws
 catkin build turtlebot_ddpg
@@ -49,8 +53,8 @@ catkin build turtlebot_ddpg
 cd ~/catkin_ws/src/turtlebot3_ddpg_collision_avoidance
 turtlebot_ddpg/scripts/run_gazebo_research.sh
 
-# Run the Hu-aligned paired evaluation with a frozen checkpoint
-MAPPO_CHECKPOINT=/path/to/mappo_selected_validation_v1.pt \
+# Run the Hu-aligned paired evaluation with the archived checkpoint
+MAPPO_CHECKPOINT="$PWD/research_artifacts/dissertation_v1/checkpoint/mappo_selected_validation_v1.pt" \
   turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
   5 900 97 hu_final_pair 9200
 
@@ -82,6 +86,23 @@ source ~/catkin_ws/devel/setup.bash
   -s turtlebot_ddpg/tests -p 'test_*.py' -v
 ```
 
+The scripts discover the repository, catkin workspace, and virtual environment
+from their own locations. Custom layouts can set `TURTLEBOT_DDPG_PROJECT_ROOT`,
+`TURTLEBOT_DDPG_CATKIN_WS`, and `TURTLEBOT_DDPG_VENV`. See
+[`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) for the frozen software versions,
+artifact checks, and the exact evidence directories used by the dissertation.
+
+The communication channel keeps the original range-only behaviour by default.
+Delay, packet loss, and bandwidth limits can be enabled for controlled studies:
+
+```bash
+COMMUNICATION_DELAY_SECONDS=0.25 \
+COMMUNICATION_DROP_PROBABILITY=0.10 \
+COMMUNICATION_BANDWIDTH_BYTES_PER_SECOND=512 \
+  turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
+  5 90 100 communication_audit 10100
+```
+
 The pose-source audit integrates TurtleBot3 wheel-joint positions from the
 known initial placement. It removes continuous Gazebo model pose from scan
 registration, but it is not a substitute for loop closure or multi-robot map
@@ -89,12 +110,17 @@ merging. The `projected_obstacle_gated` vision mode suppresses directional
 camera features when frame contrast or sky--floor reference separation is too
 weak.
 
-The validation-selected checkpoint and raw Gazebo outputs are intentionally
-excluded from Git because they are generated research artifacts. The repository
-contains the implementation, ROS configuration, Gazebo worlds, experiment
-scripts, and automated tests only.
+The compact dissertation evidence bundle is versioned under
+`research_artifacts/dissertation_v1/`. It contains the validation-selected
+checkpoint, raw valid-run CSV files, manifests, summaries, and SHA-256
+checksums used by the reported tables. Large exploratory logs and videos remain
+excluded from Git.
 
-## Original project
+## Archived upstream project notes
+
+The material below describes the original ROS Kinetic project. It is retained
+for provenance and is not the installation guide for the Noetic dissertation
+prototype above.
 
 # Mapless Collision Avoidance of TurtleBot3 Using DDPG and Prioritized Experience Replay
 This work is implemented in paper [Accelerated Sim-to-Real Deep Reinforcement Learning: Learning Collision Avoidance from Human Player](https://arxiv.org/abs/2102.10711) published in 2021 IEEE/SICE International Symposium on System Integration (SII) and [Voronoi-Based Multi-Robot Autonomous Exploration in Unknown Environments via Deep Reinforcement Learning](https://ieeexplore.ieee.org/abstract/document/9244647) published in IEEE Transactions on Vehicular Technology.

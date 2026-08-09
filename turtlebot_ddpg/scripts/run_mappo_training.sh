@@ -4,10 +4,7 @@ set -eo pipefail
 rollout_length="${1:-32}"
 decision_interval="${2:-2.5}"
 
-source /opt/ros/noetic/setup.bash
-source /usr/share/gazebo/setup.sh
-source /home/ros/catkin_ws/devel/setup.bash
-source /home/ros/ddpg_env/bin/activate
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project_env.sh"
 set -u
 
 exec roslaunch turtlebot_ddpg gazebo_research_experiment.launch \

@@ -1,0 +1,41 @@
+field,value
+protocol,hu_aligned_frozen_ablation
+methods,geometric;mappo_tail
+repeats,5
+episode_seconds,900
+wall_timeout_safety_budget,1860
+coverage_threshold,97
+seed_base,9200
+gazebo_seed,matched to experiment_seed for each repeat
+checkpoint,/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/checkpoints/frozen/mappo_selected_validation_v1.pt
+checkpoint_sha256,a3ba6f3a29ea70c39788ddfb9ab9aabf4d9fc07ab7e6a0a3c277bba29e443dc9
+checkpoint_update,26
+checkpoint_selection_rule,frozen endpoint supplied before evaluation; no test-seed ranking
+git_revision,efebe5654bf0cda3994654e278262855edeb3d26
+git_dirty_files,13
+source_snapshot_sha256,c8894f5a7fb8c697f5585185c368a5238303c026df800186bdac3c1f44fb4a54
+world_profile,hu_aligned
+world_file,/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/turtlebot_ddpg/worlds/hu_aligned_arena.world
+world_file_sha256,ce359b4f610a93165142bb39546dc4a7d631c36cd9c48a9b967ddfdd1e81d0c7
+launch_file_sha256,cd0f46a7f0df8171edfb67ca16e1dc1774220a8c893cf892b4a609f0e191eb6b
+config_file_sha256,1c6b2657d2b64655f6297283abf8b3eddbd65556cbf392f03e346f17dcc0ffde
+ros_distribution,noetic
+gazebo_version,Gazebo multi-robot simulator; version 11.15.1 Copyright (C) 2012 Open Source Robotics Foundation. Released under the Apache 2 License. http://gazebosim.org   Gazebo multi-robot simulator; version 11.15.1 Copyright (C) 2012 Open Source Robotics Foundation. Released under the Apache 2 License. http://gazebosim.org   
+render_backend,native_display
+python_version,Python 3.8.10
+torch_version,2.4.1+cpu
+network_deterministic,true
+coverage_definition,cumulative sensed truth-free cells divided by fixed explorable-cell mask
+near_collision_definition,laser clearance event at <=0.18 m rearmed at >=0.25 m
+primary_early_metric,mean_coverage_0_90_pct for fixed 90-second ablation; mean_coverage_0_300_pct for completion benchmark
+primary_completion_metric,time_to_97_s
+secondary_metrics,time_to_80_s;time_to_90_s;time_to_95_s;path_length_total_m;stuck_events;unique_stuck_regions;near_collision_events
+parameter_tuning,false
+paired_actor_deployment,single_process
+adaptive_execution_start_coverage,40.0
+adaptive_execution_full_coverage,90.0
+tail_completion_coverage,90.0
+vision_feature_scale,1.0
+execution_path_cost_mode,euclidean
+safety_shield_stop_range_m,0.20
+safety_shield_slow_range_m,0.35

@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
+if(POLICY CMP0048)
+  cmake_policy(SET CMP0048 NEW)
+endif()
 project(turtlebot_ddpg)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -186,6 +189,7 @@ install(PROGRAMS
   scripts/voronoi_exploration/exploration_coordinator.py
   scripts/voronoi_exploration/multi_robot_explorer.py
   scripts/run_gazebo_research.sh
+  scripts/project_env.sh
   scripts/run_mappo_training.sh
   scripts/run_mappo_episodes.sh
   scripts/run_mappo_vision_seed_study.sh
@@ -208,6 +212,7 @@ install(PROGRAMS
 
 install(FILES
   scripts/voronoi_exploration/frontier_scoring.py
+  scripts/voronoi_exploration/communication_model.py
   scripts/voronoi_exploration/hybrid_fallback.py
   scripts/voronoi_exploration/recovery_memory.py
   scripts/voronoi_exploration/scan_mapping.py

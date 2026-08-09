@@ -8,7 +8,7 @@ episode_seconds="${2:-900}"
 coverage_threshold="${3:-97}"
 seed_base="${4:-9500}"
 
-package_root="/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/turtlebot_ddpg"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project_env.sh"
 export EVALUATION_WORLD_PROFILE=hu_layout_b
 export EVALUATION_WORLD_FILE="${package_root}/worlds/hu_layout_b_arena.world"
 

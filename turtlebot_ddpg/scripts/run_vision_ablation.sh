@@ -17,13 +17,9 @@ case "${vision_scoring_mode}" in
     ;;
 esac
 
-source /opt/ros/noetic/setup.bash
-source /usr/share/gazebo/setup.sh
-source /home/ros/catkin_ws/devel/setup.bash
-source /home/ros/ddpg_env/bin/activate
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project_env.sh"
 set -u
 
-project_root="/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance"
 checkpoint="${project_root}/outputs/checkpoints/mappo_latest.pt"
 run_id="$(date +%Y%m%d_%H%M%S)"
 output_dir="${project_root}/outputs/evaluation/vision_ablation_${vision_scoring_mode}_${run_id}"

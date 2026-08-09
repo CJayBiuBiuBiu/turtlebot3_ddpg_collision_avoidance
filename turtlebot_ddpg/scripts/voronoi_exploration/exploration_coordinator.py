@@ -26,6 +26,7 @@ import os
 import csv
 import hashlib
 import threading
+from pathlib import Path
 
 import rospy
 import numpy as np
@@ -43,6 +44,7 @@ from frontier_scoring import (
     assign_by_cost, blend_phase_costs, combine_assignment_cost_terms,
     combine_cost_terms, line_risk_path_cost, normalize_rows, SELECTION_MODES)
 from hybrid_fallback import CoverageStallFallback
+from communication_model import CommunicationModel
 from recovery_memory import TimedSpatialBlacklist
 from safety_metrics import ClearanceTelemetry
 from scan_mapping import (
@@ -51,6 +53,8 @@ from vision_scoring import openness_from_image, VISION_SCORING_MODES
 from wheel_odometry import integrate_wheel_positions
 
 ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
+PROJECT_ROOT = Path(os.environ.get(
+    'TURTLEBOT_DDPG_PROJECT_ROOT', Path(__file__).resolve().parents[3]))
 ROBOT_COLORS = ['red', 'blue', 'green']
 ADAPTIVE_SELECTION_MODES = ('adaptive_execution_aware',
                             'mappo_adaptive_hybrid')
@@ -189,17 +193,16 @@ EMPTY_FRONTIER_HOLD = 5.0         # seconds frontiers must remain continuously a
 CAMERA_FOV = 1.085595   # rad, matches horizontal_fov in turtlebot3_waffle_pi.gazebo.xacro
 VISION_WEIGHT = 3.0      # utility-score bonus for choosing a visually-open direction
 
-# Auto-refreshing status page, written on the Windows-visible side of the
-# WSL filesystem so it can just be opened in a browser -- no command line,
-# no rostopic echo -- to watch coverage% / per-robot state during a demo.
-STATUS_HTML_PATH = "/mnt/c/Users/86947/Desktop/newp/Gazebo演示启动器/exploration_status.html"
 STATUS_WRITE_PERIOD = 1.0  # seconds
 
 METRIC_FIELDS = [
     'run_id', 'experiment_seed', 'wall_time', 'elapsed_s',
     'elapsed_wall_s', 'elapsed_sim_s', 'observed_real_time_factor',
     'selection_mode', 'mapping_mode', 'pose_source',
-    'world_profile',
+    'world_profile', 'communication_delay_s',
+    'communication_drop_probability', 'communication_bandwidth_bytes_per_s',
+    'communication_messages_sent', 'communication_messages_dropped',
+    'communication_bandwidth_blocked',
     'coverage_pct', 'coverage_explored_cells',
     'coverage_explorable_cells', 'truth_obstacle_cells',
     'coverage_mask_sha256', 'grid_resolution_m',
@@ -397,6 +400,16 @@ class Coordinator(object):
         self.max_frontier_candidates = int(rospy.get_param('~max_frontier_candidates', 48))
         self.information_radius = float(rospy.get_param('~information_radius', 1.2))
         self.communication_range = float(rospy.get_param('~communication_range', 5.0))
+        self.communication_delay_s = float(rospy.get_param(
+            '~communication_delay_s', 0.0))
+        self.communication_drop_probability = float(rospy.get_param(
+            '~communication_drop_probability', 0.0))
+        self.communication_bandwidth_bytes_per_s = float(rospy.get_param(
+            '~communication_bandwidth_bytes_per_s', 0.0))
+        self.communication_message_bytes = int(rospy.get_param(
+            '~communication_message_bytes', 48))
+        self.communication_stale_after_s = float(rospy.get_param(
+            '~communication_stale_after_s', 2.0))
         self.metrics_period = float(rospy.get_param('~metrics_period', 1.0))
         self.local_bev_size = int(rospy.get_param('~local_bev_size', 64))
         self.policy_action_timeout = float(rospy.get_param('~policy_action_timeout', 2.0))
@@ -442,11 +455,20 @@ class Coordinator(object):
         if self.near_collision_clear_range <= self.near_collision_range:
             raise ValueError(
                 'near_collision_clear_range must exceed near_collision_range')
-        default_metrics = os.path.expanduser(
-            '~/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/gazebo_metrics.csv')
+        default_metrics = str(PROJECT_ROOT / 'outputs' / 'gazebo_metrics.csv')
         self.metrics_path = os.path.expanduser(rospy.get_param('~metrics_path', default_metrics))
+        self.status_html_path = os.path.expanduser(rospy.get_param(
+            '~status_html_path', str(PROJECT_ROOT / 'outputs' /
+                                     'exploration_status.html')))
         self.run_id = rospy.get_param('/run_id', time.strftime('%Y%m%d-%H%M%S'))
         self.experiment_seed = int(rospy.get_param('~experiment_seed', 0))
+        self.communication_model = CommunicationModel(
+            delay_s=self.communication_delay_s,
+            drop_probability=self.communication_drop_probability,
+            bandwidth_bytes_per_s=self.communication_bandwidth_bytes_per_s,
+            message_bytes=self.communication_message_bytes,
+            stale_after_s=self.communication_stale_after_s,
+            seed=self.experiment_seed)
 
         self.grid = np.zeros((NY, NX), dtype=np.uint8)  # 0 unknown, 1 explored free, 2 obstacle
         xs = ARENA[0] + (np.arange(NX) + 0.5) * GRID_RES
@@ -1136,6 +1158,7 @@ class Coordinator(object):
                 tokens.append(token)
             observation.frontiers = tokens
             teammate_intents = []
+            communication_now = self._control_now()
             for other_name in ROBOT_NAMES:
                 if other_name == name:
                     continue
@@ -1143,21 +1166,37 @@ class Coordinator(object):
                 intent.robot_name = other_name
                 other_pos = self.positions[other_name]
                 separation = math.hypot(other_pos[0] - x, other_pos[1] - y)
-                intent.received = separation <= self.communication_range
-                intent.link_quality = float(np.clip(
-                    1.0 - separation / max(self.communication_range, 1e-6), 0.0, 1.0))
+                other_goal_id = self.current_goal_id.get(other_name)
+                other_goal = self.current_goal.get(other_name)
+                payload = {
+                    'pose': (other_pos[0], other_pos[1],
+                             self.yaws.get(other_name, 0.0)),
+                    'target_frontier_id': (
+                        int(other_goal_id) if other_goal_id is not None else -1),
+                    'target_position': (
+                        tuple(other_goal) if other_goal is not None else None),
+                }
+                delivered = self.communication_model.exchange(
+                    other_name, name, communication_now,
+                    separation <= self.communication_range, payload)
+                intent.received = delivered is not None
+                intent.link_quality = (
+                    float(np.clip(
+                        1.0 - separation / max(self.communication_range, 1e-6),
+                        0.0, 1.0)) *
+                    (1.0 - self.communication_drop_probability)
+                    if intent.received else 0.0)
                 intent.target_frontier_id = -1
                 if intent.received:
+                    delivered_pose = delivered['pose']
                     intent.pose = Pose2D(
-                        x=other_pos[0], y=other_pos[1],
-                        theta=self.yaws.get(other_name, 0.0))
-                    other_goal_id = self.current_goal_id.get(other_name)
-                    if other_goal_id is not None:
-                        intent.target_frontier_id = other_goal_id
-                    other_goal = self.current_goal.get(other_name)
-                    if other_goal is not None:
+                        x=delivered_pose[0], y=delivered_pose[1],
+                        theta=delivered_pose[2])
+                    intent.target_frontier_id = delivered['target_frontier_id']
+                    delivered_goal = delivered['target_position']
+                    if delivered_goal is not None:
                         intent.target_position = Point(
-                            x=other_goal[0], y=other_goal[1], z=0.0)
+                            x=delivered_goal[0], y=delivered_goal[1], z=0.0)
                 teammate_intents.append(intent)
             observation.teammate_intents = teammate_intents
             self.observation_pub[name].publish(observation)
@@ -1214,6 +1253,7 @@ class Coordinator(object):
                 self.vision_observation_value_count -
                 vision_observation_mean * vision_observation_mean)
             if vision_observation_mean is not None else None)
+        communication = self.communication_model.diagnostics()
         row = {
             'run_id': self.run_id,
             'experiment_seed': self.experiment_seed,
@@ -1231,6 +1271,17 @@ class Coordinator(object):
             'mapping_mode': self.mapping_mode,
             'pose_source': self.pose_source,
             'world_profile': self.world_profile,
+            'communication_delay_s': '%.3f' % self.communication_delay_s,
+            'communication_drop_probability': (
+                '%.4f' % self.communication_drop_probability),
+            'communication_bandwidth_bytes_per_s': (
+                '%.3f' % self.communication_bandwidth_bytes_per_s),
+            'communication_messages_sent': (
+                communication['communication_messages_sent']),
+            'communication_messages_dropped': (
+                communication['communication_messages_dropped']),
+            'communication_bandwidth_blocked': (
+                communication['communication_bandwidth_blocked']),
             'coverage_pct': '%.4f' % coverage,
             'coverage_explored_cells': explored_cells,
             'coverage_explorable_cells': self.total_explorable,
@@ -1403,10 +1454,13 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                 status_color=status_color, coverage=coverage, status_word=status_word,
                 rows_html=rows_html, n_frontiers=len(all_frontiers),
                 n_blacklist=self.blacklist.count(self._control_now()), elapsed=elapsed)
-            tmp_path = STATUS_HTML_PATH + ".tmp"
+            status_directory = os.path.dirname(self.status_html_path)
+            if status_directory and not os.path.isdir(status_directory):
+                os.makedirs(status_directory)
+            tmp_path = self.status_html_path + ".tmp"
             with open(tmp_path, "w", encoding="utf-8") as f:
                 f.write(html)
-            os.replace(tmp_path, STATUS_HTML_PATH)
+            os.replace(tmp_path, self.status_html_path)
         except (IOError, OSError) as e:
             rospy.logwarn_throttle(10.0, "[coordinator] could not write status file: %s", e)
 

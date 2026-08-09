@@ -1,0 +1,36 @@
+field,value
+protocol,hu_layout_c_frozen_ablation
+methods,mappo_no_vision;mappo_vision
+repeats,5
+episode_seconds,90
+wall_timeout_safety_budget,240
+coverage_threshold,97
+seed_base,8400
+gazebo_seed,matched to experiment_seed for each repeat
+checkpoint,/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/checkpoints/frozen/mappo_selected_validation_v1.pt
+checkpoint_sha256,a3ba6f3a29ea70c39788ddfb9ab9aabf4d9fc07ab7e6a0a3c277bba29e443dc9
+checkpoint_update,26
+checkpoint_selection_rule,frozen endpoint supplied before evaluation; no test-seed ranking
+git_revision,4e8f2da33573e4daadd6d30af371a70affa48a38
+git_dirty_files,63
+source_snapshot_sha256,a974f68cc680e911e5de81c2c83733c6f3eba8cc9418d390bcde6b1c3fc1a02c
+world_profile,hu_layout_c
+world_file,/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/turtlebot_ddpg/worlds/hu_layout_c_arena.world
+world_file_sha256,dae9dcfc27d97f5b09182f27a42ee8a78c797b9da66ee14f448f212767188f44
+launch_file_sha256,cd7bb84dccbb7088f0b27fed871a36724ee02930571a306529d5aef5820b91f1
+config_file_sha256,1c6b2657d2b64655f6297283abf8b3eddbd65556cbf392f03e346f17dcc0ffde
+ros_distribution,noetic
+gazebo_version,Gazebo multi-robot simulator; version 11.15.1 Copyright (C) 2012 Open Source Robotics Foundation. Released under the Apache 2 License. http://gazebosim.org   
+python_version,Python 3.8.10
+torch_version,2.4.1+cpu
+network_deterministic,true
+coverage_definition,cumulative sensed truth-free cells divided by fixed explorable-cell mask
+near_collision_definition,laser clearance event at <=0.18 m rearmed at >=0.25 m
+primary_early_metric,mean_coverage_0_90_pct for fixed 90-second ablation; mean_coverage_0_300_pct for completion benchmark
+primary_completion_metric,time_to_97_s
+secondary_metrics,time_to_80_s;time_to_90_s;time_to_95_s;path_length_total_m;stuck_events;unique_stuck_regions;near_collision_events
+parameter_tuning,false
+paired_actor_deployment,single_process
+adaptive_execution_start_coverage,40.0
+adaptive_execution_full_coverage,90.0
+tail_completion_coverage,90.0

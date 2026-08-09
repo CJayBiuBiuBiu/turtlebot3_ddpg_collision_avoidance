@@ -12,11 +12,9 @@ if ! [[ "${target_updates}" =~ ^[1-9][0-9]*$ ]]; then
   exit 2
 fi
 
-project_root="/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance"
-package_root="${project_root}/turtlebot_ddpg"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project_env.sh"
 source_dir="${project_root}/outputs/checkpoints/independent_seed_study"
 target_dir="${project_root}/outputs/checkpoints/independent_seed_study_long"
-source /home/ros/ddpg_env/bin/activate
 mkdir -p "${target_dir}"
 
 checkpoint_updates() {

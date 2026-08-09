@@ -138,7 +138,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--project-root', type=Path,
-        default=Path('/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance'))
+        default=Path(__file__).resolve().parents[2])
     parser.add_argument('--evaluation-root', type=Path)
     parser.add_argument('--checkpoint-root', type=Path)
     args = parser.parse_args()

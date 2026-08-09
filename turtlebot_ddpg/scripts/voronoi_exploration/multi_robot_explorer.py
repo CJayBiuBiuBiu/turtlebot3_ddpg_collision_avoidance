@@ -32,7 +32,9 @@ import tensorflow.compat.v1.keras.backend as K
 from motion_safety import clearance_speed_scale, frontal_clearance
 
 STATE_DIM = 28
-WEIGHTS_PATH = "/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/turtlebot_ddpg/scripts/fd_replay/play_human_data/actormodel-450-500.h5"
+WEIGHTS_PATH = os.path.normpath(os.path.join(
+    os.path.dirname(__file__), '..', 'fd_replay', 'play_human_data',
+    'actormodel-450-500.h5'))
 NEAR_COLLISION_RANGE = 0.18
 NEAR_COLLISION_CLEAR_RANGE = 0.25
 

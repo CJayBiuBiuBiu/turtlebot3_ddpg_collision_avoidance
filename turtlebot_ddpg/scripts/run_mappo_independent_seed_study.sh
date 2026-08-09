@@ -7,8 +7,7 @@ rollout_length="${3:-32}"
 decision_interval="${4:-2.5}"
 seeds=(1101 2202 3303)
 
-project_root="/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance"
-package_root="${project_root}/turtlebot_ddpg"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project_env.sh"
 study_dir="${project_root}/outputs/checkpoints/independent_seed_study"
 mkdir -p "${study_dir}"
 

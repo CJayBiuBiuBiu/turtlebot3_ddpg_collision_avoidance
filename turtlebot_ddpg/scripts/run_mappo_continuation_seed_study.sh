@@ -7,8 +7,7 @@ rollout_length="${3:-32}"
 decision_interval="${4:-2.5}"
 seeds=(101 202 303)
 
-project_root="/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance"
-package_root="${project_root}/turtlebot_ddpg"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project_env.sh"
 base_checkpoint="${project_root}/outputs/checkpoints/mappo_update22_pre_hu_training.pt"
 study_dir="${project_root}/outputs/checkpoints/continuation_seed_study"
 

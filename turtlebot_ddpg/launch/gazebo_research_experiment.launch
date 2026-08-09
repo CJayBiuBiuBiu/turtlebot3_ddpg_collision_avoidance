@@ -52,6 +52,12 @@
        doc="laser_scan (unknown-map default) or ground_truth_radius (legacy baseline)"/>
   <arg name="pose_source" default="gazebo_truth"
        doc="gazebo_truth (controlled benchmark) or wheel_odometry (pose audit)"/>
+  <arg name="communication_delay_s" default="0.0"/>
+  <arg name="communication_drop_probability" default="0.0"/>
+  <arg name="communication_bandwidth_bytes_per_s" default="0.0"
+       doc="Zero keeps bandwidth unlimited"/>
+  <arg name="communication_message_bytes" default="48"/>
+  <arg name="communication_stale_after_s" default="2.0"/>
   <arg name="execution_path_cost_mode" default="euclidean"
        doc="euclidean (checkpoint-compatible default) or line_risk"/>
   <arg name="start_smoke_policy" default="false"
@@ -76,15 +82,15 @@
   <arg name="training_snapshot_interval" default="5"
        doc="Save an immutable MAPPO snapshot every N updates; zero disables"/>
   <arg name="training_snapshot_dir"
-       default="$(env HOME)/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/checkpoints/snapshots"/>
+       default="$(find turtlebot_ddpg)/../outputs/checkpoints/snapshots"/>
   <arg name="mappo_training_checkpoint"
-       default="$(env HOME)/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/checkpoints/mappo_latest.pt"/>
+       default="$(find turtlebot_ddpg)/../outputs/checkpoints/mappo_latest.pt"/>
   <arg name="mappo_training_log"
-       default="$(env HOME)/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/mappo_training.csv"/>
+       default="$(find turtlebot_ddpg)/../outputs/mappo_training.csv"/>
   <arg name="mappo_diagnostics_log"
-       default="$(env HOME)/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/mappo_diagnostics.csv"/>
+       default="$(find turtlebot_ddpg)/../outputs/mappo_diagnostics.csv"/>
   <arg name="metrics_path"
-       default="$(env HOME)/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/gazebo_$(arg selection_mode).csv"/>
+       default="$(find turtlebot_ddpg)/../outputs/gazebo_$(arg selection_mode).csv"/>
 
   <include file="$(find turtlebot_ddpg)/launch/voronoi_multi_robot.launch">
     <arg name="model" value="$(arg model)"/>
@@ -116,6 +122,15 @@
     <param name="vision_feature_scale" value="$(arg vision_feature_scale)"/>
     <param name="mapping_mode" value="$(arg mapping_mode)"/>
     <param name="pose_source" value="$(arg pose_source)"/>
+    <param name="communication_delay_s" value="$(arg communication_delay_s)"/>
+    <param name="communication_drop_probability"
+           value="$(arg communication_drop_probability)"/>
+    <param name="communication_bandwidth_bytes_per_s"
+           value="$(arg communication_bandwidth_bytes_per_s)"/>
+    <param name="communication_message_bytes"
+           value="$(arg communication_message_bytes)"/>
+    <param name="communication_stale_after_s"
+           value="$(arg communication_stale_after_s)"/>
     <param name="robot1_initial_x" value="$(arg robot1_x)"/>
     <param name="robot1_initial_y" value="$(arg robot1_y)"/>
     <param name="robot1_initial_yaw" value="$(arg robot1_yaw)"/>
