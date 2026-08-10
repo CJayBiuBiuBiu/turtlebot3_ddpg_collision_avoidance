@@ -14,7 +14,7 @@ sys.path.insert(0, MODULE_DIR)
 
 from motion_safety import (
     clearance_guided_turn_direction, clearance_speed_scale,
-    frontal_clearance)
+    frontal_clearance, recovery_succeeded)
 
 
 class MotionSafetyTests(unittest.TestCase):
@@ -58,6 +58,16 @@ class MotionSafetyTests(unittest.TestCase):
             clearance_guided_turn_direction(
                 values, 0.0, increment, fallback_direction=-1.0),
             -1.0)
+
+    def test_recovery_success_uses_declared_distance(self):
+        self.assertFalse(recovery_succeeded(0.149, 0.15))
+        self.assertTrue(recovery_succeeded(0.15, 0.15))
+
+    def test_recovery_success_rejects_invalid_values(self):
+        with self.assertRaises(ValueError):
+            recovery_succeeded(-0.01)
+        with self.assertRaises(ValueError):
+            recovery_succeeded(0.2, 0.0)
 
 
 if __name__ == '__main__':

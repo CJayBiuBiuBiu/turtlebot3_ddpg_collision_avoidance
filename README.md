@@ -11,8 +11,9 @@ Waffle Pi robots build a shared sensor-derived occupancy map. A shared MAPPO
 actor selects frontier targets from robot-local observations, while the
 reproduced DDPG controller provides low-level motion. The final hierarchy also
 contains timed spatial recovery, bounded coverage-stall fallback, and
-deterministic tail completion. Stuck recovery uses the 360-degree laser scan
-to turn toward the side with more clearance instead of choosing a random side.
+deterministic tail completion. The default stuck recovery keeps the reproduced
+random turn. An optional clearance-guided mode is retained for controlled
+ablation, and every completed recovery publishes its measured displacement.
 
 ## Current architecture
 
@@ -29,7 +30,7 @@ frontier tokens + visual openness + teammate intent
 shared MAPPO frontier policy (centralized critic during training)
           |
           v
-clearance-guided timed recovery / bounded fallback / tail completion
+timed recovery / bounded fallback / tail completion
           |
           v
 frozen DDPG low-level controller in Gazebo
@@ -67,10 +68,15 @@ EVAL_WORLD=hu_aligned \
   turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
   5 120 100 memory_ablation 9800
 
-# Compare the default laser-guided recovery with the random-turn baseline
+# Compare laser-guided recovery with the reproduced random-turn baseline
 EVALUATION_WORLD_PROFILE=hu_aligned \
   turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
   5 90 100 recovery_direction_pair 11450
+
+# Repeat that one-factor comparison in the complete 97% evaluation stack
+EVALUATION_WORLD_PROFILE=hu_aligned \
+  turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
+  5 900 97 final_recovery_pair 12100
 
 # Test confidence-gated camera input and wheel-odometry registration
 EVAL_WORLD=layout_c \

@@ -16,6 +16,8 @@ METRICS = [
     'goal_assignments', 'no_path_fallbacks',
     'no_path_start_occupied', 'no_path_goal_occupied',
     'no_path_disconnected', 'stuck_events', 'unique_stuck_regions',
+    'recovery_results', 'recovery_successes', 'recovery_success_rate',
+    'recovery_mean_displacement_m',
     'near_collision_events', 'near_collision_active_s',
     'near_collision_sample_ratio',
     'policy_actions_received',
@@ -38,7 +40,8 @@ PAIRED_METRICS = [
     'mean_coverage_0_90_pct', 'mean_coverage_0_300_pct',
     'coverage_pct', 'path_length_total_m', 'goals_reached',
     'goal_assignments', 'goal_completion_rate', 'stuck_events',
-    'unique_stuck_regions',
+    'unique_stuck_regions', 'recovery_success_rate',
+    'recovery_mean_displacement_m',
     'near_collision_events', 'near_collision_active_s',
     'near_collision_sample_ratio', 'coverage_per_meter',
 ]
@@ -53,6 +56,7 @@ LOWER_IS_BETTER = {
 HIGHER_IS_BETTER = {
     'mean_coverage_0_90_pct', 'mean_coverage_0_300_pct', 'coverage_pct',
     'goals_reached', 'goal_completion_rate', 'coverage_per_meter',
+    'recovery_success_rate', 'recovery_mean_displacement_m',
 }
 
 

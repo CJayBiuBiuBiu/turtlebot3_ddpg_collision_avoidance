@@ -72,3 +72,14 @@ def clearance_guided_turn_direction(ranges, angle_min, angle_increment,
     if right_score > left_score + deadband:
         return -1.0
     return float(fallback_direction)
+
+
+def recovery_succeeded(displacement, minimum_distance=0.15):
+    """Return whether one recovery manoeuvre produced useful translation."""
+    displacement = float(displacement)
+    minimum_distance = float(minimum_distance)
+    if displacement < 0.0:
+        raise ValueError('displacement must be non-negative')
+    if minimum_distance <= 0.0:
+        raise ValueError('minimum_distance must be positive')
+    return displacement >= minimum_distance

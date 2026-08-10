@@ -45,6 +45,7 @@ from frontier_scoring import (
     combine_cost_terms, line_risk_path_cost, normalize_rows, SELECTION_MODES)
 from hybrid_fallback import CoverageStallFallback
 from communication_model import CommunicationModel
+from motion_safety import recovery_succeeded
 from recovery_memory import TimedSpatialBlacklist
 from safety_metrics import ClearanceTelemetry
 from scan_mapping import (
@@ -170,6 +171,7 @@ MIN_GOAL_HOLD_TIME = 2.0
 # radius fake-marked "explored" around a spot where a robot got physically
 # wedged and couldn't be freed by its own back-up maneuver
 STUCK_BLACKLIST_RADIUS = 1.8
+RECOVERY_SUCCESS_DISTANCE = 0.15
 
 # The last handful of frontier cells can end up in a corner the DDPG policy
 # physically cannot enter (tight concave geometry it never saw in training).
@@ -214,6 +216,8 @@ METRIC_FIELDS = [
     'no_path_start_occupied', 'no_path_goal_occupied',
     'no_path_disconnected',
     'stuck_events', 'unique_stuck_regions', 'recovery_direction_mode',
+    'recovery_results', 'recovery_successes', 'recovery_success_rate',
+    'recovery_mean_displacement_m', 'recovery_success_distance_m',
     'near_collision_events', 'near_collision_active_s',
     'near_collision_sample_ratio', 'minimum_laser_clearance_m',
     'near_collision_range_m', 'near_collision_clear_range_m',
@@ -455,10 +459,13 @@ class Coordinator(object):
         self.stuck_blacklist_ttl = float(rospy.get_param(
             '~stuck_blacklist_ttl', 90.0))
         self.recovery_direction_mode = rospy.get_param(
-            '~recovery_direction_mode', 'clearance')
+            '~recovery_direction_mode', 'random')
         if self.recovery_direction_mode not in ('random', 'clearance'):
             raise ValueError(
                 'recovery_direction_mode must be random or clearance')
+        self.recovery_success_distance = float(rospy.get_param(
+            '~recovery_success_distance', RECOVERY_SUCCESS_DISTANCE))
+        recovery_succeeded(0.0, self.recovery_success_distance)
         self.near_collision_range = float(rospy.get_param(
             '~near_collision_range', 0.18))
         self.near_collision_clear_range = float(rospy.get_param(
@@ -563,6 +570,9 @@ class Coordinator(object):
         # blacklisted spatial regions, which is easier to interpret in the
         # paper as distinct failure locations.
         self.unique_stuck_regions = 0
+        self.recovery_results = 0
+        self.recovery_successes = 0
+        self.recovery_displacement_sum = 0.0
         self.near_collision_events = dict((name, 0) for name in ROBOT_NAMES)
         self.clearance_telemetry = ClearanceTelemetry(
             event_threshold=self.near_collision_range)
@@ -628,6 +638,9 @@ class Coordinator(object):
                                  self._joint_states_cb, callback_args=name)
             rospy.Subscriber('/%s/stuck_event' % name, Point, self._stuck_event_cb,
                              callback_args=name)
+            rospy.Subscriber(
+                '/%s/recovery_displacement_m' % name, Float32,
+                self._recovery_displacement_cb, callback_args=name)
             rospy.Subscriber('/%s/near_collision_event' % name, Bool,
                              self._near_collision_cb, callback_args=name)
             rospy.Subscriber('/%s/min_clearance_m' % name, Float32,
@@ -788,6 +801,14 @@ class Coordinator(object):
     def _near_collision_cb(self, msg, name):
         if msg.data:
             self.near_collision_events[name] += 1
+
+    def _recovery_displacement_cb(self, msg, name):
+        displacement = max(0.0, float(msg.data))
+        self.recovery_results += 1
+        self.recovery_displacement_sum += displacement
+        if recovery_succeeded(
+                displacement, self.recovery_success_distance):
+            self.recovery_successes += 1
 
     def _clearance_cb(self, msg, name):
         self.clearance_telemetry.observe(
@@ -1310,6 +1331,18 @@ class Coordinator(object):
             'stuck_events': sum(self.stuck_events.values()),
             'unique_stuck_regions': self.unique_stuck_regions,
             'recovery_direction_mode': self.recovery_direction_mode,
+            'recovery_results': self.recovery_results,
+            'recovery_successes': self.recovery_successes,
+            'recovery_success_rate': (
+                '%.6f' % (float(self.recovery_successes) /
+                          self.recovery_results)
+                if self.recovery_results else ''),
+            'recovery_mean_displacement_m': (
+                '%.6f' % (self.recovery_displacement_sum /
+                          self.recovery_results)
+                if self.recovery_results else ''),
+            'recovery_success_distance_m': (
+                '%.4f' % self.recovery_success_distance),
             'near_collision_events': sum(self.near_collision_events.values()),
             'near_collision_active_s': '%.4f' % clearance['active_seconds'],
             'near_collision_sample_ratio': '%.6f' % clearance['sample_ratio'],

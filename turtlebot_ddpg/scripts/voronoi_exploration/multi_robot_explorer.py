@@ -109,6 +109,9 @@ class RobotAgent(object):
         rospy.Subscriber('/%s/exploration_done' % robot_name, Bool, self._done_cb)
 
         self.stuck_pub = rospy.Publisher('/%s/stuck_event' % robot_name, Point, queue_size=1)
+        self.recovery_displacement_pub = rospy.Publisher(
+            '/%s/recovery_displacement_m' % robot_name,
+            Float32, queue_size=1)
         self.near_collision_pub = rospy.Publisher(
             '/%s/near_collision_event' % robot_name, Bool, queue_size=1)
         self.min_clearance_pub = rospy.Publisher(
@@ -243,7 +246,7 @@ def main():
     safety_slow_range = float(rospy.get_param(
         '~safety_slow_range', 0.35))
     recovery_direction_mode = rospy.get_param(
-        '~recovery_direction_mode', 'clearance')
+        '~recovery_direction_mode', 'random')
     if recovery_direction_mode not in ('random', 'clearance'):
         raise ValueError(
             'recovery_direction_mode must be random or clearance')
@@ -283,9 +286,23 @@ def main():
     stuck_check_time = control_time()
     recovering_until = 0.0
     recovery_turn_dir = 1.0
+    recovery_start_pos = None
 
     while not rospy.is_shutdown():
         now = control_time()
+
+        if recovery_start_pos is not None and now >= recovering_until:
+            x, y, _ = agent.get_pose()
+            displacement = math.hypot(
+                x - recovery_start_pos[0], y - recovery_start_pos[1])
+            agent.recovery_displacement_pub.publish(
+                Float32(data=displacement))
+            rospy.loginfo(
+                '[%s] recovery displacement: %.3fm',
+                robot_name, displacement)
+            recovery_start_pos = None
+            stuck_check_pos = (x, y)
+            stuck_check_time = now
 
         if agent.mission_done:
             agent.pub.publish(Twist())  # all-zero: full stop
@@ -308,6 +325,7 @@ def main():
                     rospy.logwarn("[%s] stuck detected (moved %.2fm in %.1fs), backing off",
                                    robot_name, moved, STUCK_CHECK_WINDOW)
                     recovering_until = now + RECOVERY_DURATION
+                    recovery_start_pos = pos
                     random_direction = agent.rng.choice([-1.0, 1.0])
                     if recovery_direction_mode == 'clearance':
                         scan = agent.laser_ig.get_msg(timeout=0.1)
