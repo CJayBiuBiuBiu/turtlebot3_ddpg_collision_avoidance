@@ -78,6 +78,11 @@ EVALUATION_WORLD_PROFILE=hu_aligned \
   turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
   5 900 97 final_recovery_pair 12100
 
+# Isolate the camera feature in the same complete 97% control stack
+EVALUATION_WORLD_PROFILE=hu_aligned \
+  turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \
+  5 900 97 final_vision_pair 12300
+
 # Test confidence-gated camera input and wheel-odometry registration
 EVAL_WORLD=layout_c \
   turtlebot_ddpg/scripts/run_hu_aligned_evaluation.sh \

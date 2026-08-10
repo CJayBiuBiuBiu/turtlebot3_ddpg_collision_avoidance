@@ -1,0 +1,534 @@
+xacro: in-order processing became default in ROS Melodic. You can drop the option.
+xacro: in-order processing became default in ROS Melodic. You can drop the option.
+xacro: in-order processing became default in ROS Melodic. You can drop the option.
+2026-08-10 16:09:40.645169: I tensorflow/core/util/port.cc:110] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-08-10 16:09:40.646385: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-08-10 16:09:40.680118: I tensorflow/core/util/port.cc:110] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-08-10 16:09:40.684279: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-08-10 16:09:40.698650: I tensorflow/core/util/port.cc:110] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-08-10 16:09:40.700206: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-08-10 16:09:40.725461: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-08-10 16:09:40.725890: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-08-10 16:09:40.757784: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-08-10 16:09:40.758159: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-08-10 16:09:40.759108: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2026-08-10 16:09:40.759569: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-08-10 16:09:41.202191: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2026-08-10 16:09:41.214211: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2026-08-10 16:09:41.223188: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/home/ros/ddpg_env/lib/python3.8/site-packages/OpenSSL/SSL.py:16: CryptographyDeprecationWarning: Python 3.8 is no longer supported by the Python core team and support for it is deprecated in cryptography. The next release of cryptography will remove support for Python 3.8.
+  from cryptography import x509
+WARNING:tensorflow:From /home/ros/ddpg_env/lib/python3.8/site-packages/tensorflow/python/compat/v2_compat.py:107: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+/home/ros/ddpg_env/lib/python3.8/site-packages/OpenSSL/SSL.py:16: CryptographyDeprecationWarning: Python 3.8 is no longer supported by the Python core team and support for it is deprecated in cryptography. The next release of cryptography will remove support for Python 3.8.
+  from cryptography import x509
+WARNING:tensorflow:From /home/ros/ddpg_env/lib/python3.8/site-packages/tensorflow/python/compat/v2_compat.py:107: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+/home/ros/ddpg_env/lib/python3.8/site-packages/OpenSSL/SSL.py:16: CryptographyDeprecationWarning: Python 3.8 is no longer supported by the Python core team and support for it is deprecated in cryptography. The next release of cryptography will remove support for Python 3.8.
+  from cryptography import x509
+WARNING:tensorflow:From /home/ros/ddpg_env/lib/python3.8/site-packages/tensorflow/python/compat/v2_compat.py:107: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+2026-08-10 16:09:41.927911: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:981] could not open file to read NUMA node: /sys/bus/pci/devices/0000:01:00.0/numa_node
+Your kernel may have been built without NUMA support.
+2026-08-10 16:09:41.927909: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:981] could not open file to read NUMA node: /sys/bus/pci/devices/0000:01:00.0/numa_node
+Your kernel may have been built without NUMA support.
+2026-08-10 16:09:41.928162: W tensorflow/core/common_runtime/gpu/gpu_device.cc:1960] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+2026-08-10 16:09:41.928168: W tensorflow/core/common_runtime/gpu/gpu_device.cc:1960] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+2026-08-10 16:09:41.952232: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:981] could not open file to read NUMA node: /sys/bus/pci/devices/0000:01:00.0/numa_node
+Your kernel may have been built without NUMA support.
+2026-08-10 16:09:41.952462: W tensorflow/core/common_runtime/gpu/gpu_device.cc:1960] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+2026-08-10 16:09:41.981565: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:375] MLIR V1 optimization pass is not enabled
+2026-08-10 16:09:41.985537: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:375] MLIR V1 optimization pass is not enabled
+2026-08-10 16:09:41.994553: W tensorflow/c/c_api.cc:304] Operation '{name:'dense_4/kernel/Assign' id:96 op device:{requested: '', assigned: ''} def:{{{node dense_4/kernel/Assign}} = AssignVariableOp[_has_manual_control_dependencies=true, dtype=DT_FLOAT, validate_shape=false](dense_4/kernel, dense_4/kernel/Initializer/random_uniform)}}' was changed by setting attribute after it was run by a session. This mutation will have no effect, and will trigger an error in the future. Either don't modify nodes after running them or create a new session.
+2026-08-10 16:09:41.998252: W tensorflow/c/c_api.cc:304] Operation '{name:'dense_4/bias/Assign' id:101 op device:{requested: '', assigned: ''} def:{{{node dense_4/bias/Assign}} = AssignVariableOp[_has_manual_control_dependencies=true, dtype=DT_FLOAT, validate_shape=false](dense_4/bias, dense_4/bias/Initializer/zeros)}}' was changed by setting attribute after it was run by a session. This mutation will have no effect, and will trigger an error in the future. Either don't modify nodes after running them or create a new session.
+2026-08-10 16:09:42.010605: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:375] MLIR V1 optimization pass is not enabled
+2026-08-10 16:09:42.025390: W tensorflow/c/c_api.cc:304] Operation '{name:'dense_4/bias/Assign' id:101 op device:{requested: '', assigned: ''} def:{{{node dense_4/bias/Assign}} = AssignVariableOp[_has_manual_control_dependencies=true, dtype=DT_FLOAT, validate_shape=false](dense_4/bias, dense_4/bias/Initializer/zeros)}}' was changed by setting attribute after it was run by a session. This mutation will have no effect, and will trigger an error in the future. Either don't modify nodes after running them or create a new session.
+... logging to /home/ros/.ros/log/81c3c77a-94cd-11f1-ad83-00155dd4990b/roslaunch-PC-10385.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/turtlebot_ddpg/launch/gazebo_research_experiment.launch
+[1mstarted roslaunch server http://PC:34075/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /exploration_coordinator/adaptive_execution_full_coverage: 90.0
+ * /exploration_coordinator/adaptive_execution_start_coverage: 40.0
+ * /exploration_coordinator/cluster_frontiers: True
+ * /exploration_coordinator/communication_bandwidth_bytes_per_s: 0.0
+ * /exploration_coordinator/communication_delay_s: 0.0
+ * /exploration_coordinator/communication_drop_probability: 0.0
+ * /exploration_coordinator/communication_message_bytes: 48
+ * /exploration_coordinator/communication_range: 5.0
+ * /exploration_coordinator/communication_stale_after_s: 2.0
+ * /exploration_coordinator/complete_on_coverage: True
+ * /exploration_coordinator/coverage_done_threshold: 97
+ * /exploration_coordinator/execution_path_cost_mode: euclidean
+ * /exploration_coordinator/experiment_seed: 12302
+ * /exploration_coordinator/frontier_cells_per_candidate: 12
+ * /exploration_coordinator/frontier_cluster_min_cells: 2
+ * /exploration_coordinator/frontier_track_radius: 1.0
+ * /exploration_coordinator/frontier_track_ttl: 3.0
+ * /exploration_coordinator/hybrid_fallback_active_seconds: 30.0
+ * /exploration_coordinator/hybrid_fallback_minimum_coverage: 20.0
+ * /exploration_coordinator/hybrid_fallback_progress_epsilon: 0.2
+ * /exploration_coordinator/hybrid_fallback_stall_seconds: 60.0
+ * /exploration_coordinator/idle_done_hold: 30
+ * /exploration_coordinator/information_radius: 1.2
+ * /exploration_coordinator/local_bev_size: 64
+ * /exploration_coordinator/mapping_mode: laser_scan
+ * /exploration_coordinator/max_frontier_candidates: 48
+ * /exploration_coordinator/max_simulation_seconds: 900
+ * /exploration_coordinator/metrics_path: /home/ros/catkin_...
+ * /exploration_coordinator/metrics_period: 1.0
+ * /exploration_coordinator/near_collision_clear_range: 0.25
+ * /exploration_coordinator/near_collision_range: 0.18
+ * /exploration_coordinator/policy_action_timeout: 2.0
+ * /exploration_coordinator/pose_source: gazebo_truth
+ * /exploration_coordinator/recovery_direction_mode: random
+ * /exploration_coordinator/recovery_success_distance: 0.15
+ * /exploration_coordinator/robot1_initial_x: -0.8
+ * /exploration_coordinator/robot1_initial_y: 4.0
+ * /exploration_coordinator/robot1_initial_yaw: -1.5708
+ * /exploration_coordinator/robot2_initial_x: 0.0
+ * /exploration_coordinator/robot2_initial_y: 4.0
+ * /exploration_coordinator/robot2_initial_yaw: -1.5708
+ * /exploration_coordinator/robot3_initial_x: 0.8
+ * /exploration_coordinator/robot3_initial_y: 4.0
+ * /exploration_coordinator/robot3_initial_yaw: -1.5708
+ * /exploration_coordinator/scan_inflation_cells: 1
+ * /exploration_coordinator/scan_mapping_range: 1.3
+ * /exploration_coordinator/scan_ray_stride: 4
+ * /exploration_coordinator/selection_mode: mappo_hybrid
+ * /exploration_coordinator/shutdown_on_done: True
+ * /exploration_coordinator/stuck_blacklist_ttl: 90.0
+ * /exploration_coordinator/tail_completion_coverage: 90.0
+ * /exploration_coordinator/tail_completion_enabled: True
+ * /exploration_coordinator/vision_enabled: True
+ * /exploration_coordinator/vision_feature_scale: 1.0
+ * /exploration_coordinator/vision_projection_mode: thirds
+ * /exploration_coordinator/vision_scoring_mode: projected_obstacle
+ * /exploration_coordinator/world_profile: hu_aligned
+ * /gazebo/enable_ros_network: True
+ * /mappo_policy/allow_untrained: False
+ * /mappo_policy/bev_size: 64
+ * /mappo_policy/checkpoint: /home/ros/catkin_...
+ * /mappo_policy/decision_interval: 2.5
+ * /mappo_policy/deterministic: True
+ * /mappo_policy/max_frontiers: 48
+ * /robot1/laser_filter/scan_filter_chain: [{'name': 'range'...
+ * /robot1/robot_description: <?xml version="1....
+ * /robot1/robot_state_publisher/publish_frequency: 30.0
+ * /robot1_explorer/experiment_seed: 12302
+ * /robot1_explorer/near_collision_clear_range: 0.25
+ * /robot1_explorer/near_collision_range: 0.18
+ * /robot1_explorer/recovery_direction_mode: random
+ * /robot1_explorer/safety_shield_enabled: False
+ * /robot1_explorer/safety_slow_range: 0.35
+ * /robot1_explorer/safety_stop_range: 0.2
+ * /robot2/laser_filter/scan_filter_chain: [{'name': 'range'...
+ * /robot2/robot_description: <?xml version="1....
+ * /robot2/robot_state_publisher/publish_frequency: 30.0
+ * /robot2_explorer/experiment_seed: 12302
+ * /robot2_explorer/near_collision_clear_range: 0.25
+ * /robot2_explorer/near_collision_range: 0.18
+ * /robot2_explorer/recovery_direction_mode: random
+ * /robot2_explorer/safety_shield_enabled: False
+ * /robot2_explorer/safety_slow_range: 0.35
+ * /robot2_explorer/safety_stop_range: 0.2
+ * /robot3/laser_filter/scan_filter_chain: [{'name': 'range'...
+ * /robot3/robot_description: <?xml version="1....
+ * /robot3/robot_state_publisher/publish_frequency: 30.0
+ * /robot3_explorer/experiment_seed: 12302
+ * /robot3_explorer/near_collision_clear_range: 0.25
+ * /robot3_explorer/near_collision_range: 0.18
+ * /robot3_explorer/recovery_direction_mode: random
+ * /robot3_explorer/safety_shield_enabled: False
+ * /robot3_explorer/safety_slow_range: 0.35
+ * /robot3_explorer/safety_stop_range: 0.2
+ * /rosdistro: noetic
+ * /rosversion: 1.17.4
+ * /use_sim_time: True
+
+NODES
+  /
+    exploration_coordinator (turtlebot_ddpg/exploration_coordinator_node.py)
+    gazebo (gazebo_ros/gzserver)
+    mappo_policy (turtlebot_ddpg/mappo_policy_node.py)
+    robot1_explorer (turtlebot_ddpg/multi_robot_explorer_node.py)
+    robot2_explorer (turtlebot_ddpg/multi_robot_explorer_node.py)
+    robot3_explorer (turtlebot_ddpg/multi_robot_explorer_node.py)
+  /robot1/
+    laser_filter (laser_filters/scan_to_scan_filter_chain)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    spawn_urdf (gazebo_ros/spawn_model)
+  /robot2/
+    laser_filter (laser_filters/scan_to_scan_filter_chain)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    spawn_urdf (gazebo_ros/spawn_model)
+  /robot3/
+    laser_filter (laser_filters/scan_to_scan_filter_chain)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    spawn_urdf (gazebo_ros/spawn_model)
+
+auto-starting new master
+[1mprocess[master]: started with pid [10480][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+]2;/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/turtlebot_ddpg/launch/gazebo_research_experiment.launch http://localhost:11311
+[1msetting /run_id to 81c3c77a-94cd-11f1-ad83-00155dd4990b[0m
+[1mprocess[rosout-1]: started with pid [10490][0m
+started core service [/rosout]
+[1mprocess[gazebo-2]: started with pid [10497][0m
+[1mprocess[robot1/robot_state_publisher-3]: started with pid [10501][0m
+[1mprocess[robot1/spawn_urdf-4]: started with pid [10503][0m
+[1mprocess[robot1/laser_filter-5]: started with pid [10504][0m
+[1mprocess[robot2/robot_state_publisher-6]: started with pid [10509][0m
+[1mprocess[robot2/spawn_urdf-7]: started with pid [10511][0m
+[1mprocess[robot2/laser_filter-8]: started with pid [10517][0m
+[1mprocess[robot3/robot_state_publisher-9]: started with pid [10523][0m
+[1mprocess[robot3/spawn_urdf-10]: started with pid [10525][0m
+[1mprocess[robot3/laser_filter-11]: started with pid [10530][0m
+[1mprocess[exploration_coordinator-12]: started with pid [10532][0m
+[1mprocess[robot1_explorer-13]: started with pid [10566][0m
+[1mprocess[robot2_explorer-14]: started with pid [10573][0m
+[1mprocess[robot3_explorer-15]: started with pid [10574][0m
+[1mprocess[mappo_policy-16]: started with pid [10603][0m
+[1m[robot1/spawn_urdf-4] process has finished cleanly
+log file: /home/ros/.ros/log/81c3c77a-94cd-11f1-ad83-00155dd4990b/robot1-spawn_urdf-4*.log[0m
+[1m[robot3/spawn_urdf-10] process has finished cleanly
+log file: /home/ros/.ros/log/81c3c77a-94cd-11f1-ad83-00155dd4990b/robot3-spawn_urdf-10*.log[0m
+2026-08-10 16:09:45.586413: W tensorflow/c/c_api.cc:304] Operation '{name:'concatenate/concat' id:109 op device:{requested: '', assigned: ''} def:{{{node concatenate/concat}} = ConcatV2[N=2, T=DT_FLOAT, Tidx=DT_INT32, _has_manual_control_dependencies=true](dense_3/Tanh, dense_4/Sigmoid, concatenate/concat/axis)}}' was changed by setting attribute after it was run by a session. This mutation will have no effect, and will trigger an error in the future. Either don't modify nodes after running them or create a new session.
+2026-08-10 16:09:45.586417: W tensorflow/c/c_api.cc:304] Operation '{name:'concatenate/concat' id:109 op device:{requested: '', assigned: ''} def:{{{node concatenate/concat}} = ConcatV2[N=2, T=DT_FLOAT, Tidx=DT_INT32, _has_manual_control_dependencies=true](dense_3/Tanh, dense_4/Sigmoid, concatenate/concat/axis)}}' was changed by setting attribute after it was run by a session. This mutation will have no effect, and will trigger an error in the future. Either don't modify nodes after running them or create a new session.
+2026-08-10 16:09:45.586432: W tensorflow/c/c_api.cc:304] Operation '{name:'concatenate/concat' id:109 op device:{requested: '', assigned: ''} def:{{{node concatenate/concat}} = ConcatV2[N=2, T=DT_FLOAT, Tidx=DT_INT32, _has_manual_control_dependencies=true](dense_3/Tanh, dense_4/Sigmoid, concatenate/concat/axis)}}' was changed by setting attribute after it was run by a session. This mutation will have no effect, and will trigger an error in the future. Either don't modify nodes after running them or create a new session.
+[INFO] [1786374580.927697, 0.000000]: [coordinator] selection_mode=mappo_hybrid, mapping_mode=laser_scan, pose_source=gazebo_truth, world_profile=hu_aligned, clustered_frontiers=True, metrics=/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/evaluation/final_vision_pair_n5_20260810/repeat_03_mappo_tail.csv
+[INFO] [1786374580.928397, 0.000000]: waiting for all robot poses... have []
+[INFO] [1786374585.151461, 0.750000]: [coordinator] coverage 2.3%, frontiers remaining: 68, blacklisted spots: 0
+[INFO] [1786374585.407820, 1.000000]: [coordinator] mode=mappo_hybrid goal for robot1: (-1.10, 2.90) [path: 6 waypoints]
+[INFO] [1786374585.409342, 1.000000]: [coordinator] mode=mappo_hybrid goal for robot2: (-0.30, 4.10) [path: 3 waypoints]
+[INFO] [1786374585.410748, 1.000000]: [coordinator] mode=mappo_hybrid goal for robot3: (1.30, 3.50) [path: 3 waypoints]
+[INFO] [1786374590.406469, 6.000000]: [coordinator] coverage 9.8%, frontiers remaining: 69, blacklisted spots: 0
+[INFO] [1786374590.410764, 6.000000]: [coordinator] mode=mappo_hybrid goal for robot1: (-2.30, 2.10) [path: 9 waypoints]
+[INFO] [1786374590.413193, 6.000000]: [coordinator] mode=mappo_hybrid goal for robot3: (1.10, 2.30) [path: 6 waypoints]
+[INFO] [1786374592.914909, 8.500000]: [coordinator] mode=mappo_hybrid goal for robot3: (2.50, 2.70) [path: 9 waypoints]
+[INFO] [1786374595.411132, 11.000000]: [coordinator] mode=mappo_hybrid goal for robot1: (-2.90, 1.50) [path: 6 waypoints]
+[INFO] [1786374595.412750, 11.000000]: [coordinator] mode=mappo_hybrid goal for robot2: (0.10, 4.30) [path: 8 waypoints]
+[INFO] [1786374595.657574, 11.250000]: [coordinator] coverage 16.9%, frontiers remaining: 76, blacklisted spots: 0
+[INFO] [1786374600.414572, 16.000000]: [coordinator] mode=mappo_hybrid goal for robot1: (-1.90, -0.10) [path: 8 waypoints]
+[INFO] [1786374600.416864, 16.000000]: [coordinator] mode=mappo_hybrid goal for robot3: (3.50, 2.10) [path: 7 waypoints]
+[INFO] [1786374600.909665, 16.500000]: [coordinator] coverage 23.4%, frontiers remaining: 101, blacklisted spots: 0
+[INFO] [1786374605.416519, 21.000000]: [coordinator] mode=mappo_hybrid goal for robot1: (-2.10, -0.90) [path: 5 waypoints]
+[INFO] [1786374605.418789, 21.000000]: [coordinator] mode=mappo_hybrid goal for robot3: (4.70, 2.50) [path: 7 waypoints]
+[INFO] [1786374606.160814, 21.750000]: [coordinator] coverage 30.2%, frontiers remaining: 129, blacklisted spots: 0
+[INFO] [1786374607.915676, 23.500000]: [coordinator] mode=mappo_hybrid goal for robot1: (-2.10, -1.70) [path: 6 waypoints]
+[INFO] [1786374610.416966, 26.000000]: [coordinator] mode=mappo_hybrid goal for robot1: (-2.50, -2.30) [path: 6 waypoints]
+[INFO] [1786374610.419541, 26.000000]: [coordinator] mode=mappo_hybrid goal for robot3: (4.90, 4.30) [path: 8 waypoints]
+[INFO] [1786374611.411839, 27.000000]: [coordinator] coverage 35.0%, frontiers remaining: 144, blacklisted spots: 1
+[INFO] [1786374612.917768, 28.500000]: [coordinator] mode=mappo_hybrid goal for robot1: (-2.90, -2.90) [path: 6 waypoints]
+[INFO] [1786374615.422224, 31.000000]: [coordinator] mode=mappo_hybrid goal for robot3: (2.90, 3.90) [path: 11 waypoints]
+[INFO] [1786374616.663626, 32.250000]: [coordinator] coverage 38.6%, frontiers remaining: 146, blacklisted spots: 1
+[INFO] [1786374620.421615, 36.000000]: [coordinator] mode=mappo_hybrid goal for robot1: (-3.70, -0.90) [path: 12 waypoints]
+[INFO] [1786374621.913848, 37.500000]: [coordinator] coverage 39.9%, frontiers remaining: 140, blacklisted spots: 1
+[INFO] [1786374622.923962, 38.500000]: [coordinator] mode=mappo_hybrid goal for robot3: (1.50, 4.30) [path: 8 waypoints]
+[INFO] [1786374625.421636, 41.000000]: [coordinator] mode=mappo_hybrid goal for robot2: (-4.70, 3.90) [path: 7 waypoints]
+[INFO] [1786374627.165590, 42.750000]: [coordinator] coverage 40.2%, frontiers remaining: 124, blacklisted spots: 1
+[INFO] [1786374632.417037, 48.000000]: [coordinator] coverage 40.3%, frontiers remaining: 122, blacklisted spots: 2
+[INFO] [1786374632.921448, 48.500000]: [coordinator] mode=mappo_hybrid goal for robot1: (-0.70, 0.50) [path: 12 waypoints]
+[INFO] [1786374632.922828, 48.500000]: [coordinator] mode=mappo_hybrid goal for robot2: (-5.70, 4.10) [path: 8 waypoints]
+[INFO] [1786374637.668269, 53.250000]: [coordinator] coverage 40.3%, frontiers remaining: 116, blacklisted spots: 3
+[INFO] [1786374637.927482, 53.500000]: [coordinator] mode=mappo_hybrid goal for robot2: (-6.10, 4.50) [path: 8 waypoints]
+[INFO] [1786374642.919472, 58.500000]: [coordinator] coverage 42.2%, frontiers remaining: 135, blacklisted spots: 3
+[INFO] [1786374645.428112, 61.000000]: [coordinator] mode=mappo_hybrid goal for robot1: (0.10, 0.50) [path: 5 waypoints]
+[INFO] [1786374647.930248, 63.500000]: [coordinator] mode=mappo_hybrid goal for robot1: (3.70, 0.70) [path: 21 waypoints]
+[INFO] [1786374648.170831, 63.750000]: [coordinator] coverage 46.7%, frontiers remaining: 125, blacklisted spots: 3
+[INFO] [1786374653.421868, 69.000000]: [coordinator] coverage 49.5%, frontiers remaining: 118, blacklisted spots: 4
+[INFO] [1786374655.429664, 71.000000]: [coordinator] mode=mappo_hybrid goal for robot2: (-3.90, 0.90) [path: 29 waypoints]
+[INFO] [1786374658.673046, 74.250000]: [coordinator] coverage 49.6%, frontiers remaining: 107, blacklisted spots: 5
+[INFO] [1786374662.928414, 78.500000]: [coordinator] mode=mappo_hybrid goal for robot1: (6.30, 3.90) [path: 16 waypoints]
+[INFO] [1786374663.924420, 79.500000]: [coordinator] coverage 49.7%, frontiers remaining: 104, blacklisted spots: 5
+[INFO] [1786374669.176325, 84.750000]: [coordinator] coverage 50.2%, frontiers remaining: 111, blacklisted spots: 5
+[INFO] [1786374674.427672, 90.000000]: [coordinator] coverage 50.5%, frontiers remaining: 105, blacklisted spots: 5
+[INFO] [1786374677.932047, 93.500000]: [coordinator] mode=mappo_hybrid goal for robot1: (7.50, 4.10) [path: 8 waypoints]
+[INFO] [1786374679.678283, 95.250000]: [coordinator] coverage 50.6%, frontiers remaining: 103, blacklisted spots: 5
+[INFO] [1786374684.929481, 100.500000]: [coordinator] coverage 50.6%, frontiers remaining: 110, blacklisted spots: 5
+[INFO] [1786374687.933924, 103.500000]: [coordinator] mode=mappo_hybrid goal for robot1: (9.10, 4.10) [path: 8 waypoints]
+[INFO] [1786374690.182028, 105.750000]: [coordinator] coverage 50.7%, frontiers remaining: 112, blacklisted spots: 5
+[INFO] [1786374695.432600, 111.000000]: [coordinator] coverage 51.1%, frontiers remaining: 104, blacklisted spots: 5
+[INFO] [1786374695.442981, 111.010000]: [coordinator] mode=mappo_hybrid goal for robot1: (8.90, 2.50) [path: 9 waypoints]
+[INFO] [1786374700.683980, 116.250000]: [coordinator] coverage 51.2%, frontiers remaining: 107, blacklisted spots: 4
+[INFO] [1786374705.440154, 121.000000]: [coordinator] mode=mappo_hybrid goal for robot1: (9.10, 1.30) [path: 7 waypoints]
+[INFO] [1786374705.934553, 121.500000]: [coordinator] coverage 51.7%, frontiers remaining: 105, blacklisted spots: 4
+[INFO] [1786374711.186407, 126.750000]: [coordinator] coverage 53.2%, frontiers remaining: 122, blacklisted spots: 4
+[INFO] [1786374712.941646, 128.500000]: [coordinator] mode=mappo_hybrid goal for robot1: (8.90, 0.50) [path: 6 waypoints]
+[INFO] [1786374716.437676, 132.000000]: [coordinator] coverage 55.7%, frontiers remaining: 120, blacklisted spots: 4
+[INFO] [1786374721.688013, 137.250000]: [coordinator] coverage 57.6%, frontiers remaining: 121, blacklisted spots: 5
+[INFO] [1786374722.950615, 138.510000]: [coordinator] mode=mappo_hybrid goal for robot1: (1.10, -0.90) [path: 53 waypoints]
+[INFO] [1786374726.939604, 142.500000]: [coordinator] coverage 58.9%, frontiers remaining: 125, blacklisted spots: 3
+[INFO] [1786374732.193022, 147.750000]: [coordinator] coverage 59.4%, frontiers remaining: 133, blacklisted spots: 4
+[INFO] [1786374737.442499, 153.000000]: [coordinator] coverage 62.3%, frontiers remaining: 147, blacklisted spots: 4
+[INFO] [1786374742.695017, 158.250000]: [coordinator] coverage 65.5%, frontiers remaining: 143, blacklisted spots: 3
+[INFO] [1786374747.944712, 163.500000]: [coordinator] coverage 66.4%, frontiers remaining: 149, blacklisted spots: 3
+[WARN] [1786374587.909060, 3.500000]: [coordinator] masked frontier_id=3 is not assigned to robot2
+[WARN] [1786374590.412102, 6.000000]: [coordinator] stale frontier_id=8 from robot2
+[WARN] [1786374592.912451, 8.500000]: [coordinator] masked frontier_id=5 is not assigned to robot2
+[WARN] [1786374610.295011, 25.880000]: [coordinator] blacklisting stuck area near (-2.37, 3.95)
+[WARN] [1786374617.918285, 33.500000]: [coordinator] stale frontier_id=3 from robot1
+[WARN] [1786374631.999179, 47.580000]: [coordinator] blacklisting stuck area near (-2.71, -1.46)
+[WARN] [1786374633.498660, 49.080000]: [coordinator] blacklisting stuck area near (-4.41, 3.55)
+[WARN] [1786374650.603551, 66.180000]: [coordinator] blacklisting stuck area near (-0.78, 3.57)
+[WARN] [1786374653.504745, 69.080000]: [coordinator] blacklisting stuck area near (-6.84, 3.79)
+[WARN] [1786374658.104770, 73.680000]: [coordinator] blacklisting stuck area near (-6.72, 3.76)
+[WARN] [1786374668.909319, 84.480000]: [coordinator] blacklisting stuck area near (-7.21, 3.63)
+[WARN] [1786374673.509315, 89.080000]: [coordinator] blacklisting stuck area near (-7.15, 3.68)
+[WARN] [1786374678.110083, 93.680000]: [coordinator] blacklisting stuck area near (-7.10, 3.66)
+[WARN] [1786374682.711367, 98.280000]: [coordinator] blacklisting stuck area near (-7.04, 3.62)
+[WARN] [1786374687.312496, 102.880000]: [coordinator] blacklisting stuck area near (-6.95, 3.69)
+[WARN] [1786374698.115211, 113.680000]: [coordinator] blacklisting stuck area near (-7.29, 3.66)
+[WARN] [1786374714.018954, 129.580000]: [coordinator] blacklisting stuck area near (-7.82, 3.72)
+[WARN] [1786374720.220842, 135.780000]: [coordinator] blacklisting stuck area near (9.62, 1.20)
+[WARN] [1786374720.442567, 136.000000]: [coordinator] stale frontier_id=53 from robot1
+[WARN] [1786374724.820946, 140.380000]: [coordinator] blacklisting stuck area near (-8.02, 3.67)
+[WARN] [1786374727.422817, 142.980000]: [coordinator] blacklisting stuck area near (-6.78, 0.02)
+[WARN] [1786374732.023465, 147.580000]: [coordinator] blacklisting stuck area near (-6.86, 0.13)
+[WARN] [1786374739.725330, 155.280000]: [coordinator] blacklisting stuck area near (-7.18, 0.03)
+[WARN] [1786374744.325629, 159.880000]: [coordinator] blacklisting stuck area near (-7.05, 0.06)
+[WARN] [1786374748.027091, 163.580000]: [coordinator] blacklisting stuck area near (-4.72, 4.57)
+[WARN] [1786374752.627990, 168.180000]: [coordinator] blacklisting stuck area near (-4.79, 4.51)
+[WARN] [1786374760.330137, 175.880000]: [coordinator] blacklisting stuck area near (-4.18, 4.40)
+[WARN] [1786374764.932235, 180.480000]: [coordinator] blacklisting stuck area near (-4.33, 4.33)
+[WARN] [1786374769.530997, 185.080000]: [coordinator] blacklisting stuck area near (-4.39, 4.36)
+[WARN] [1786374798.938323, 214.480000]: [coordinator] blacklisting stuck area near (0.97, 3.35)
+[WARN] [1786374825.245991, 240.780000]: [coordinator] blacklisting stuck area near (-2.78, 1.43)
+[WARN] [1786374829.846548, 245.380000]: [coordinator] blacklisting stuck area near (-2.85, 1.62)
+[WARN] [1786374833.465007, 249.000000]: [coordinator] coverage reached 90.25%; switching to deterministic execution-aware tail completion
+[WARN] [1786374837.547502, 253.080000]: [coordinator] blacklisting stuck area near (-3.03, 1.81)
+[WARN] [1786374851.251146, 266.780000]: [coordinator] blacklisting stuck area near (-9.74, -1.69)
+[WARN] [1786374855.852278, 271.380000]: [coordinator] blacklisting stuck area near (-9.70, -1.82)
+[WARN] [1786374929.469972, 344.980000]: [coordinator] blacklisting stuck area near (3.52, -3.45)
+[WARN] [1786374940.272771, 355.780000]: [coordinator] blacklisting stuck area near (3.07, -3.37)
+[WARN] [1786374947.574286, 363.080000]: [coordinator] blacklisting stuck area near (7.23, -3.70)
+[INFO] [1786374750.214330, 165.760000]: [coordinator] mode=mappo_hybrid goal for robot2: (-4.10, -4.30) [path: 21 waypoints]
+[INFO] [1786374753.196596, 168.750000]: [coordinator] coverage 68.3%, frontiers remaining: 151, blacklisted spots: 4
+[INFO] [1786374758.448661, 174.000000]: [coordinator] coverage 71.2%, frontiers remaining: 173, blacklisted spots: 4
+[INFO] [1786374763.698193, 179.250000]: [coordinator] coverage 75.0%, frontiers remaining: 184, blacklisted spots: 4
+[INFO] [1786374768.949219, 184.500000]: [coordinator] coverage 77.2%, frontiers remaining: 189, blacklisted spots: 4
+[INFO] [1786374774.200569, 189.750000]: [coordinator] coverage 78.9%, frontiers remaining: 179, blacklisted spots: 4
+[INFO] [1786374779.452586, 195.000000]: [coordinator] coverage 82.2%, frontiers remaining: 184, blacklisted spots: 4
+[INFO] [1786374780.459446, 196.000000]: [coordinator] mode=mappo_hybrid goal for robot2: (-1.30, -3.70) [path: 14 waypoints]
+[INFO] [1786374784.703476, 200.250000]: [coordinator] coverage 84.4%, frontiers remaining: 158, blacklisted spots: 4
+[INFO] [1786374785.462174, 201.000000]: [coordinator] mode=mappo_hybrid goal for robot1: (7.90, -2.70) [path: 38 waypoints]
+[INFO] [1786374789.954181, 205.500000]: [coordinator] coverage 86.4%, frontiers remaining: 154, blacklisted spots: 4
+[INFO] [1786374790.468291, 206.010000]: [coordinator] mode=mappo_hybrid goal for robot2: (-0.10, -2.50) [path: 7 waypoints]
+[INFO] [1786374795.205676, 210.750000]: [coordinator] coverage 88.2%, frontiers remaining: 128, blacklisted spots: 4
+[INFO] [1786374797.974888, 213.510000]: [coordinator] mode=mappo_hybrid goal for robot2: (-8.70, -1.70) [path: 45 waypoints]
+[INFO] [1786374800.228974, 215.770000]: [coordinator] mode=mappo_hybrid goal for robot3: (-3.90, 1.70) [path: 25 waypoints]
+[INFO] [1786374800.457242, 216.000000]: [coordinator] coverage 88.5%, frontiers remaining: 123, blacklisted spots: 5
+[INFO] [1786374805.708030, 221.250000]: [coordinator] coverage 88.6%, frontiers remaining: 122, blacklisted spots: 5
+[INFO] [1786374810.959441, 226.500000]: [coordinator] coverage 88.6%, frontiers remaining: 122, blacklisted spots: 4
+[INFO] [1786374816.210784, 231.750000]: [coordinator] coverage 88.6%, frontiers remaining: 121, blacklisted spots: 3
+[INFO] [1786374820.472934, 236.000000]: [coordinator] mode=mappo_hybrid goal for robot3: (-9.50, 3.90) [path: 40 waypoints]
+[INFO] [1786374821.462023, 237.000000]: [coordinator] coverage 88.6%, frontiers remaining: 109, blacklisted spots: 3
+[INFO] [1786374826.712724, 242.250000]: [coordinator] coverage 88.6%, frontiers remaining: 109, blacklisted spots: 4
+[INFO] [1786374831.964184, 247.500000]: [coordinator] coverage 89.4%, frontiers remaining: 111, blacklisted spots: 4
+[INFO] [1786374833.481843, 249.010000]: [coordinator] mode=mappo_hybrid goal for robot1: (5.10, 0.70) [path: 16 waypoints]
+[INFO] [1786374833.488967, 249.010000]: [coordinator] mode=mappo_hybrid goal for robot2: (-8.70, -1.70) [path: 7 waypoints]
+[INFO] [1786374833.498495, 249.030000]: [coordinator] mode=mappo_hybrid goal for robot3: (-3.90, -0.50) [path: 13 waypoints]
+[INFO] [1786374837.215452, 252.750000]: [coordinator] coverage 91.1%, frontiers remaining: 115, blacklisted spots: 3
+[INFO] [1786374837.975521, 253.500000]: [coordinator] mode=mappo_hybrid goal for robot2: (-9.50, -1.50) [path: 6 waypoints]
+[INFO] [1786374842.466750, 258.000000]: [coordinator] coverage 91.6%, frontiers remaining: 103, blacklisted spots: 3
+[INFO] [1786374843.226897, 258.750000]: [coordinator] mode=mappo_hybrid goal for robot2: (-8.70, -0.30) [path: 9 waypoints]
+[INFO] [1786374847.718431, 263.250000]: [coordinator] coverage 91.6%, frontiers remaining: 98, blacklisted spots: 3
+[INFO] [1786374847.731706, 263.260000]: [coordinator] mode=mappo_hybrid goal for robot3: (0.70, -4.30) [path: 22 waypoints]
+[INFO] [1786374851.480230, 267.000000]: [coordinator] mode=mappo_hybrid goal for robot2: (-8.50, -4.10) [path: 13 waypoints]
+[INFO] [1786374852.969378, 268.500000]: [coordinator] coverage 91.6%, frontiers remaining: 97, blacklisted spots: 4
+[INFO] [1786374858.220552, 273.750000]: [coordinator] coverage 91.6%, frontiers remaining: 97, blacklisted spots: 4
+[INFO] [1786374863.472147, 279.000000]: [coordinator] coverage 91.7%, frontiers remaining: 98, blacklisted spots: 3
+[INFO] [1786374868.722765, 284.250000]: [coordinator] coverage 92.1%, frontiers remaining: 86, blacklisted spots: 3
+[INFO] [1786374873.974173, 289.500000]: [coordinator] coverage 92.1%, frontiers remaining: 82, blacklisted spots: 3
+[INFO] [1786374879.226110, 294.750000]: [coordinator] coverage 92.2%, frontiers remaining: 82, blacklisted spots: 3
+[INFO] [1786374884.477097, 300.000000]: [coordinator] coverage 92.3%, frontiers remaining: 82, blacklisted spots: 3
+[INFO] [1786374889.728142, 305.250000]: [coordinator] coverage 92.3%, frontiers remaining: 82, blacklisted spots: 2
+[INFO] [1786374894.979727, 310.500000]: [coordinator] coverage 92.3%, frontiers remaining: 82, blacklisted spots: 2
+[INFO] [1786374900.230769, 315.750000]: [coordinator] coverage 92.3%, frontiers remaining: 82, blacklisted spots: 2
+[INFO] [1786374905.482105, 321.000000]: [coordinator] coverage 92.3%, frontiers remaining: 82, blacklisted spots: 2
+[INFO] [1786374907.741706, 323.250000]: [coordinator] mode=mappo_hybrid goal for robot3: (6.50, -4.30) [path: 11 waypoints]
+[INFO] [1786374910.732598, 326.250000]: [coordinator] coverage 92.3%, frontiers remaining: 80, blacklisted spots: 2
+[INFO] [1786374915.983991, 331.500000]: [coordinator] coverage 93.1%, frontiers remaining: 82, blacklisted spots: 2
+[INFO] [1786374921.235738, 336.750000]: [coordinator] coverage 94.7%, frontiers remaining: 79, blacklisted spots: 2
+[INFO] [1786374926.487103, 342.000000]: [coordinator] coverage 95.1%, frontiers remaining: 80, blacklisted spots: 2
+[INFO] [1786374931.737915, 347.250000]: [coordinator] coverage 96.0%, frontiers remaining: 82, blacklisted spots: 2
+[INFO] [1786374936.989252, 352.500000]: [coordinator] coverage 96.5%, frontiers remaining: 77, blacklisted spots: 2
+[INFO] [1786374942.241009, 357.750000]: [coordinator] coverage 96.5%, frontiers remaining: 77, blacklisted spots: 2
+[INFO] [1786374947.491843, 363.000000]: [coordinator] coverage 96.5%, frontiers remaining: 77, blacklisted spots: 1
+[INFO] [1786374947.754611, 363.260000]: [coordinator] mode=mappo_hybrid goal for robot3: (8.90, -1.70) [path: 12 waypoints]
+[INFO] [1786374952.742955, 368.250000]: [coordinator] coverage 96.5%, frontiers remaining: 77, blacklisted spots: 2
+[INFO] [1786374956.494334, 372.000000]: Exploration complete: coverage 97.1% reached the 97% evaluation threshold. Signalling all robots to stop.
+[0m[INFO] [1786374580.737852519]: Finished loading Gazebo ROS API Plugin.[0m
+[0m[INFO] [1786374580.738678944]: waitForService: Service [/gazebo/set_physics_properties] has not been advertised, waiting...[0m
+[0m[INFO] [1786374582.255615820]: waitForService: Service [/gazebo/set_physics_properties] is now available.[0m
+[0m[INFO] [1786374582.265712580, 0.010000000]: Physics dynamic reconfigure ready.[0m
+[0m[INFO] [1786374584.205315298, 0.180000000]: Camera Plugin: Using the 'robotNamespace' param: '/robot1'[0m
+[0m[INFO] [1786374584.207125822, 0.180000000]: Camera Plugin (ns = /robot1)  <tf_prefix_>, set to ""[0m
+[0m[INFO] [1786374584.229292639, 0.180000000]: Laser Plugin: Using the 'robotNamespace' param: 'robot1'[0m
+[0m[INFO] [1786374584.229701082, 0.180000000]: Starting Laser Plugin (ns = robot1)[0m
+[0m[INFO] [1786374584.230097493, 0.180000000]: Laser Plugin (ns = robot1)  <tf_prefix_>, set to ""[0m
+[0m[INFO] [1786374584.316707503, 0.180000000]: Starting plugin DiffDrive(ns = robot1/)[0m
+[0m[INFO] [1786374584.316763086, 0.180000000]: DiffDrive(ns = robot1/): <rosDebugLevel> = na[0m
+[0m[INFO] [1786374584.317092015, 0.180000000]: DiffDrive(ns = robot1/): <tf_prefix> = [0m
+[0m[INFO] [1786374584.317639117, 0.180000000]: DiffDrive(ns = robot1/): Advertise joint_states[0m
+[0m[INFO] [1786374584.318259061, 0.180000000]: DiffDrive(ns = robot1/): Try to subscribe to cmd_vel[0m
+[0m[INFO] [1786374584.319913189, 0.180000000]: DiffDrive(ns = robot1/): Subscribe to cmd_vel[0m
+[0m[INFO] [1786374584.561318628, 0.390000000]: Camera Plugin: Using the 'robotNamespace' param: '/robot3'[0m
+[0m[INFO] [1786374584.562667081, 0.390000000]: Laser Plugin: Using the 'robotNamespace' param: 'robot3'[0m
+[0m[INFO] [1786374584.562748537, 0.390000000]: Starting Laser Plugin (ns = robot3)[0m
+[0m[INFO] [1786374584.562800138, 0.390000000]: Camera Plugin (ns = /robot3)  <tf_prefix_>, set to ""[0m
+[0m[INFO] [1786374584.563487812, 0.390000000]: Laser Plugin (ns = robot3)  <tf_prefix_>, set to ""[0m
+[0m[INFO] [1786374584.662895378, 0.390000000]: Starting plugin DiffDrive(ns = robot3/)[0m
+[0m[INFO] [1786374584.662926861, 0.390000000]: DiffDrive(ns = robot3/): <rosDebugLevel> = na[0m
+[0m[INFO] [1786374584.663322670, 0.390000000]: DiffDrive(ns = robot3/): <tf_prefix> = [0m
+[0m[INFO] [1786374584.663901364, 0.390000000]: DiffDrive(ns = robot3/): Advertise joint_states[0m
+[0m[INFO] [1786374584.663973479, 0.390000000]: DiffDrive(ns = robot3/): Try to subscribe to cmd_vel[0m
+[0m[INFO] [1786374584.665315912, 0.390000000]: DiffDrive(ns = robot3/): Subscribe to cmd_vel[0m
+[0m[INFO] [1786374584.904999695, 0.600000000]: Camera Plugin: Using the 'robotNamespace' param: '/robot2'[0m
+[0m[INFO] [1786374584.906281143, 0.600000000]: Camera Plugin (ns = /robot2)  <tf_prefix_>, set to ""[0m
+[0m[INFO] [1786374584.910576964, 0.600000000]: Laser Plugin: Using the 'robotNamespace' param: 'robot2'[0m
+[0m[INFO] [1786374584.910642153, 0.600000000]: Starting Laser Plugin (ns = robot2)[0m
+[0m[INFO] [1786374584.911638271, 0.600000000]: Laser Plugin (ns = robot2)  <tf_prefix_>, set to ""[0m
+[0m[INFO] [1786374585.006981344, 0.600000000]: Starting plugin DiffDrive(ns = robot2/)[0m
+[0m[INFO] [1786374585.007027110, 0.600000000]: DiffDrive(ns = robot2/): <rosDebugLevel> = na[0m
+[0m[INFO] [1786374585.007376859, 0.600000000]: DiffDrive(ns = robot2/): <tf_prefix> = [0m
+[0m[INFO] [1786374585.008008216, 0.600000000]: DiffDrive(ns = robot2/): Advertise joint_states[0m
+[0m[INFO] [1786374585.008044922, 0.600000000]: DiffDrive(ns = robot2/): Try to subscribe to cmd_vel[0m
+[0m[INFO] [1786374585.009404649, 0.600000000]: DiffDrive(ns = robot2/): Subscribe to cmd_vel[0m
+[INFO] [1786374581.873375, 0.000000]: [mappo_policy] loaded checkpoint /home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/research_artifacts/dissertation_v1/checkpoint/mappo_selected_validation_v1.pt
+[INFO] [1786374581.884945, 0.000000]: [mappo_policy] actors=robot1,robot2,robot3 decision_interval=2.50s
+/home/ros/ddpg_env/lib/python3.8/site-packages/keras/src/engine/training_v1.py:2359: UserWarning: `Model.state_updates` will be removed in a future version. This property should not be used in TensorFlow 2.0, as `updates` are applied automatically.
+  updates=self.state_updates,
+[WARN] [1786374650.602268, 66.180000]: [robot3] stuck detected (moved 0.12m in 3.0s), backing off
+[WARN] [1786374714.018013, 129.580000]: [robot3] stuck detected (moved 0.12m in 3.0s), backing off
+[WARN] [1786374724.819954, 140.380000]: [robot3] stuck detected (moved 0.06m in 3.0s), backing off
+[WARN] [1786374748.025798, 163.580000]: [robot3] stuck detected (moved 0.10m in 3.0s), backing off
+[WARN] [1786374752.627007, 168.180000]: [robot3] stuck detected (moved 0.08m in 3.0s), backing off
+[WARN] [1786374760.328726, 175.880000]: [robot3] stuck detected (moved 0.14m in 3.0s), backing off
+[WARN] [1786374764.930840, 180.480000]: [robot3] stuck detected (moved 0.01m in 3.0s), backing off
+[WARN] [1786374769.530052, 185.080000]: [robot3] stuck detected (moved 0.15m in 3.0s), backing off
+[WARN] [1786374798.937481, 214.480000]: [robot3] stuck detected (moved 0.14m in 3.0s), backing off
+[WARN] [1786374825.244828, 240.780000]: [robot3] stuck detected (moved 0.09m in 3.0s), backing off
+[WARN] [1786374829.845456, 245.380000]: [robot3] stuck detected (moved 0.07m in 3.0s), backing off
+[WARN] [1786374837.546556, 253.080000]: [robot3] stuck detected (moved 0.12m in 3.0s), backing off
+[WARN] [1786374947.573123, 363.080000]: [robot3] stuck detected (moved 0.05m in 3.0s), backing off
+[INFO] [1786374582.040193, 0.000000]: [robot3] experiment_seed=12302 (robot seed=12305)
+[INFO] [1786374582.040991, 0.000000]: [robot3] near-collision hysteresis: event<=0.180m, clear>=0.250m
+[INFO] [1786374582.041991, 0.000000]: [robot3] safety shield: enabled=False, stop<=0.200m, full-speed>=0.350m
+[INFO] [1786374582.042641, 0.000000]: [robot3] recovery direction: mode=random
+[INFO] [1786374582.043296, 0.000000]: [robot3] waiting for first laser/model_states message...
+[INFO] [1786374584.847235, 0.580000]: [robot3] ready, waiting for first exploration target...
+[INFO] [1786374585.582278, 1.180000]: [robot3] starting navigation loop
+[INFO] [1786374652.101320, 67.680000]: [robot3] recovery displacement: 0.155m
+[INFO] [1786374715.516729, 131.080000]: [robot3] recovery displacement: 0.160m
+[INFO] [1786374726.319185, 141.880000]: [robot3] recovery displacement: 0.187m
+[INFO] [1786374749.524652, 165.080000]: [robot3] recovery displacement: 0.172m
+[INFO] [1786374754.125643, 169.680000]: [robot3] recovery displacement: 0.117m
+[INFO] [1786374761.827212, 177.380000]: [robot3] recovery displacement: 0.170m
+[INFO] [1786374766.428566, 181.980000]: [robot3] recovery displacement: 0.180m
+[INFO] [1786374771.029939, 186.580000]: [robot3] recovery displacement: 0.184m
+[INFO] [1786374800.436810, 215.980000]: [robot3] recovery displacement: 0.182m
+[INFO] [1786374826.742438, 242.280000]: [robot3] recovery displacement: 0.162m
+[INFO] [1786374831.343736, 246.880000]: [robot3] recovery displacement: 0.087m
+[INFO] [1786374839.045358, 254.580000]: [robot3] recovery displacement: 0.172m
+[INFO] [1786374949.071873, 364.580000]: [robot3] recovery displacement: 0.166m
+[INFO] [1786374956.496360, 372.000000]: [robot3] exploration complete, stopping
+/home/ros/ddpg_env/lib/python3.8/site-packages/keras/src/engine/training_v1.py:2359: UserWarning: `Model.state_updates` will be removed in a future version. This property should not be used in TensorFlow 2.0, as `updates` are applied automatically.
+  updates=self.state_updates,
+[WARN] [1786374610.293399, 25.880000]: [robot2] stuck detected (moved 0.15m in 3.0s), backing off
+[WARN] [1786374633.497820, 49.080000]: [robot2] stuck detected (moved 0.11m in 3.0s), backing off
+[WARN] [1786374653.502950, 69.080000]: [robot2] stuck detected (moved 0.12m in 3.0s), backing off
+[WARN] [1786374658.103840, 73.680000]: [robot2] stuck detected (moved 0.14m in 3.0s), backing off
+[WARN] [1786374668.907907, 84.480000]: [robot2] stuck detected (moved 0.12m in 3.0s), backing off
+[WARN] [1786374673.508275, 89.080000]: [robot2] stuck detected (moved 0.06m in 3.0s), backing off
+[WARN] [1786374678.109187, 93.680000]: [robot2] stuck detected (moved 0.09m in 3.0s), backing off
+[WARN] [1786374682.710461, 98.280000]: [robot2] stuck detected (moved 0.13m in 3.0s), backing off
+[WARN] [1786374687.311644, 102.880000]: [robot2] stuck detected (moved 0.05m in 3.0s), backing off
+[WARN] [1786374698.114138, 113.680000]: [robot2] stuck detected (moved 0.13m in 3.0s), backing off
+[WARN] [1786374727.421570, 142.980000]: [robot2] stuck detected (moved 0.14m in 3.0s), backing off
+[WARN] [1786374732.022585, 147.580000]: [robot2] stuck detected (moved 0.03m in 3.0s), backing off
+[WARN] [1786374739.724076, 155.280000]: [robot2] stuck detected (moved 0.13m in 3.0s), backing off
+[WARN] [1786374744.324418, 159.880000]: [robot2] stuck detected (moved 0.03m in 3.0s), backing off
+[WARN] [1786374851.249996, 266.780000]: [robot2] stuck detected (moved 0.01m in 3.0s), backing off
+[WARN] [1786374855.851320, 271.380000]: [robot2] stuck detected (moved 0.03m in 3.0s), backing off
+[INFO] [1786374582.064348, 0.000000]: [robot2] experiment_seed=12302 (robot seed=12304)
+[INFO] [1786374582.065026, 0.000000]: [robot2] near-collision hysteresis: event<=0.180m, clear>=0.250m
+[INFO] [1786374582.065501, 0.000000]: [robot2] safety shield: enabled=False, stop<=0.200m, full-speed>=0.350m
+[INFO] [1786374582.065897, 0.000000]: [robot2] recovery direction: mode=random
+[INFO] [1786374582.066306, 0.000000]: [robot2] waiting for first laser/model_states message...
+[INFO] [1786374585.381980, 0.980000]: [robot2] ready, waiting for first exploration target...
+[INFO] [1786374585.582264, 1.180000]: [robot2] starting navigation loop
+[INFO] [1786374611.791705, 27.380000]: [robot2] recovery displacement: 0.128m
+[INFO] [1786374634.996979, 50.580000]: [robot2] recovery displacement: 0.153m
+[INFO] [1786374655.002203, 70.580000]: [robot2] recovery displacement: 0.174m
+[INFO] [1786374659.603319, 75.180000]: [robot2] recovery displacement: 0.147m
+[INFO] [1786374670.405949, 85.980000]: [robot2] recovery displacement: 0.121m
+[INFO] [1786374675.007309, 90.580000]: [robot2] recovery displacement: 0.144m
+[INFO] [1786374679.608261, 95.180000]: [robot2] recovery displacement: 0.173m
+[INFO] [1786374684.209244, 99.780000]: [robot2] recovery displacement: 0.165m
+[INFO] [1786374688.810759, 104.380000]: [robot2] recovery displacement: 0.137m
+[INFO] [1786374699.613306, 115.180000]: [robot2] recovery displacement: 0.143m
+[INFO] [1786374728.920039, 144.480000]: [robot2] recovery displacement: 0.151m
+[INFO] [1786374733.521197, 149.080000]: [robot2] recovery displacement: 0.171m
+[INFO] [1786374741.222843, 156.780000]: [robot2] recovery displacement: 0.168m
+[INFO] [1786374745.823643, 161.380000]: [robot2] recovery displacement: 0.178m
+[INFO] [1786374852.749006, 268.280000]: [robot2] recovery displacement: 0.157m
+[INFO] [1786374857.350095, 272.880000]: [robot2] recovery displacement: 0.024m
+[INFO] [1786374956.496444, 372.000000]: [robot2] exploration complete, stopping
+/home/ros/ddpg_env/lib/python3.8/site-packages/keras/src/engine/training_v1.py:2359: UserWarning: `Model.state_updates` will be removed in a future version. This property should not be used in TensorFlow 2.0, as `updates` are applied automatically.
+  updates=self.state_updates,
+[WARN] [1786374631.998004, 47.580000]: [robot1] stuck detected (moved 0.12m in 3.0s), backing off
+[WARN] [1786374720.219682, 135.780000]: [robot1] stuck detected (moved 0.06m in 3.0s), backing off
+[WARN] [1786374929.468713, 344.980000]: [robot1] stuck detected (moved 0.14m in 3.0s), backing off
+[WARN] [1786374940.271941, 355.780000]: [robot1] stuck detected (moved 0.13m in 3.0s), backing off
+[INFO] [1786374582.041978, 0.000000]: [robot1] experiment_seed=12302 (robot seed=12303)
+[INFO] [1786374582.042854, 0.000000]: [robot1] near-collision hysteresis: event<=0.180m, clear>=0.250m
+[INFO] [1786374582.043536, 0.000000]: [robot1] safety shield: enabled=False, stop<=0.200m, full-speed>=0.350m
+[INFO] [1786374582.044074, 0.000000]: [robot1] recovery direction: mode=random
+[INFO] [1786374582.044533, 0.000000]: [robot1] waiting for first laser/model_states message...
+[INFO] [1786374584.515501, 0.380000]: [robot1] ready, waiting for first exploration target...
+[INFO] [1786374585.582292, 1.180000]: [robot1] starting navigation loop
+[INFO] [1786374633.496526, 49.080000]: [robot1] recovery displacement: 0.158m
+[INFO] [1786374721.717988, 137.280000]: [robot1] recovery displacement: 0.106m
+[INFO] [1786374930.967911, 346.480000]: [robot1] recovery displacement: 0.168m
+[INFO] [1786374941.770553, 357.280000]: [robot1] recovery displacement: 0.091m
+[INFO] [1786374956.495857, 372.000000]: [robot1] exploration complete, stopping
+[31m================================================================================REQUIRED process [exploration_coordinator-12] has died!
+process has finished cleanly
+log file: /home/ros/.ros/log/81c3c77a-94cd-11f1-ad83-00155dd4990b/exploration_coordinator-12*.log
+Initiating shutdown!
+================================================================================[0m
+[1m[robot2/spawn_urdf-7] process has finished cleanly
+log file: /home/ros/.ros/log/81c3c77a-94cd-11f1-ad83-00155dd4990b/robot2-spawn_urdf-7*.log[0m
+[mappo_policy-16] killing on exit
+[robot3_explorer-15] killing on exit
+[robot2_explorer-14] killing on exit
+[robot1_explorer-13] killing on exit
+[exploration_coordinator-12] killing on exit
+[robot3/laser_filter-11] killing on exit
+[robot3/robot_state_publisher-9] killing on exit
+[robot2/laser_filter-8] killing on exit
+[robot1/robot_state_publisher-3] killing on exit
+[robot2/robot_state_publisher-6] killing on exit
+[robot1/laser_filter-5] killing on exit
+[gazebo-2] killing on exit
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

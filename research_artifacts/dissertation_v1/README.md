@@ -24,6 +24,7 @@ Expected SHA-256:
 | Continuous visual projection | `vision_projection_hu_n5_20260810` |
 | Clearance-guided recovery stability | `guided_recovery_hu_n10_20260810`, plus its two five-seed source directories |
 | Recovery outcome telemetry and final-stack ablation | `final_recovery_pair_n5_20260810` |
+| Final-stack camera-feature ablation | `final_vision_pair_n5_20260810` |
 | Per-robot actor processes | `decentralized_actor_pair_n5_20260805` |
 | Wheel-odometry audit | `pose_source_pair_n5_20260806` |
 | Optional safety shield | `safety_shield_pair_n5_20260805` |

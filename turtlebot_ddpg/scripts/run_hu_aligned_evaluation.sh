@@ -60,6 +60,7 @@ if [[ "${method_filter}" != "all" ]]; then
     vision_projection_pair) methods=(mappo_gated_vision_thirds mappo_gated_vision_interpolated) ;;
     recovery_direction_pair) methods=(mappo_gated_vision_interpolated mappo_gated_vision_guided_recovery) ;;
     final_recovery_pair) methods=(mappo_tail mappo_tail_guided_recovery) ;;
+    final_vision_pair) methods=(mappo_tail_no_vision mappo_tail) ;;
     memory_ablation) methods=(mappo_timed_memory mappo_persistent_memory) ;;
     pose_source_pair) methods=(mappo_tail mappo_tail_wheel_odom) ;;
     improvement_pair) methods=(mappo_hybrid mappo_tail) ;;
@@ -68,7 +69,7 @@ if [[ "${method_filter}" != "all" ]]; then
     safety_pair) methods=(mappo_tail mappo_tail_safe) ;;
     improvement_ablation) methods=(geometric execution_aware adaptive_execution_aware mappo_hybrid mappo_tail mappo_adaptive_tail) ;;
     hu_ablation) methods=(geometric execution_aware mappo_no_vision mappo_vision mappo_hybrid) ;;
-    geometric|execution_aware|adaptive_execution_aware|mappo_no_vision|mappo_vision|mappo_gated_vision|mappo_gated_vision_thirds|mappo_gated_vision_interpolated|mappo_gated_vision_guided_recovery|mappo_timed_memory|mappo_persistent_memory|mappo_hybrid|mappo_tail|mappo_tail_guided_recovery|mappo_tail_wheel_odom|mappo_tail_safe|mappo_tail_decentralized|mappo_adaptive_tail|mappo_adaptive_tail_decentralized) methods=("${method_filter}") ;;
+    geometric|execution_aware|adaptive_execution_aware|mappo_no_vision|mappo_vision|mappo_gated_vision|mappo_gated_vision_thirds|mappo_gated_vision_interpolated|mappo_gated_vision_guided_recovery|mappo_timed_memory|mappo_persistent_memory|mappo_hybrid|mappo_tail_no_vision|mappo_tail|mappo_tail_guided_recovery|mappo_tail_wheel_odom|mappo_tail_safe|mappo_tail_decentralized|mappo_adaptive_tail|mappo_adaptive_tail_decentralized) methods=("${method_filter}") ;;
     *) echo "Unknown method filter: ${method_filter}" >&2; exit 2 ;;
   esac
 fi
@@ -311,6 +312,7 @@ run_method() {
         "${method}" == "mappo_gated_vision_guided_recovery" ||
         "${method}" == "mappo_timed_memory" ||
         "${method}" == "mappo_persistent_memory" ||
+        "${method}" == "mappo_tail_no_vision" ||
         "${method}" == "mappo_tail" ||
         "${method}" == "mappo_tail_guided_recovery" ||
         "${method}" == "mappo_tail_wheel_odom" ||
@@ -341,7 +343,8 @@ run_method() {
   if [[ "${method}" == "mappo_hybrid" ]]; then
     selection_mode=mappo_hybrid
   fi
-  if [[ "${method}" == "mappo_tail" ||
+  if [[ "${method}" == "mappo_tail_no_vision" ||
+        "${method}" == "mappo_tail" ||
         "${method}" == "mappo_tail_guided_recovery" ||
         "${method}" == "mappo_tail_wheel_odom" ||
         "${method}" == "mappo_tail_safe" ||
@@ -556,6 +559,11 @@ elif [[ "${method_filter}" == "final_recovery_pair" ]]; then
     --positive-method mappo_tail_guided_recovery \
     --negative-method mappo_tail \
     --paired-output guided_recovery_final_stack.csv
+elif [[ "${method_filter}" == "final_vision_pair" ]]; then
+  python3 "${summarizer}" "${output_dir}" \
+    --positive-method mappo_tail \
+    --negative-method mappo_tail_no_vision \
+    --paired-output vision_final_stack.csv
 elif [[ "${method_filter}" == "memory_ablation" ]]; then
   python3 "${summarizer}" "${output_dir}" \
     --positive-method mappo_timed_memory \
