@@ -58,6 +58,7 @@ if [[ "${method_filter}" != "all" ]]; then
     vision_pair) methods=(mappo_no_vision mappo_vision) ;;
     gated_vision_pair) methods=(mappo_no_vision mappo_gated_vision) ;;
     vision_projection_pair) methods=(mappo_gated_vision_thirds mappo_gated_vision_interpolated) ;;
+    recovery_direction_pair) methods=(mappo_gated_vision_interpolated mappo_gated_vision_guided_recovery) ;;
     memory_ablation) methods=(mappo_timed_memory mappo_persistent_memory) ;;
     pose_source_pair) methods=(mappo_tail mappo_tail_wheel_odom) ;;
     improvement_pair) methods=(mappo_hybrid mappo_tail) ;;
@@ -66,7 +67,7 @@ if [[ "${method_filter}" != "all" ]]; then
     safety_pair) methods=(mappo_tail mappo_tail_safe) ;;
     improvement_ablation) methods=(geometric execution_aware adaptive_execution_aware mappo_hybrid mappo_tail mappo_adaptive_tail) ;;
     hu_ablation) methods=(geometric execution_aware mappo_no_vision mappo_vision mappo_hybrid) ;;
-    geometric|execution_aware|adaptive_execution_aware|mappo_no_vision|mappo_vision|mappo_gated_vision|mappo_gated_vision_thirds|mappo_gated_vision_interpolated|mappo_timed_memory|mappo_persistent_memory|mappo_hybrid|mappo_tail|mappo_tail_wheel_odom|mappo_tail_safe|mappo_tail_decentralized|mappo_adaptive_tail|mappo_adaptive_tail_decentralized) methods=("${method_filter}") ;;
+    geometric|execution_aware|adaptive_execution_aware|mappo_no_vision|mappo_vision|mappo_gated_vision|mappo_gated_vision_thirds|mappo_gated_vision_interpolated|mappo_gated_vision_guided_recovery|mappo_timed_memory|mappo_persistent_memory|mappo_hybrid|mappo_tail|mappo_tail_wheel_odom|mappo_tail_safe|mappo_tail_decentralized|mappo_adaptive_tail|mappo_adaptive_tail_decentralized) methods=("${method_filter}") ;;
     *) echo "Unknown method filter: ${method_filter}" >&2; exit 2 ;;
   esac
 fi
@@ -242,7 +243,7 @@ if abs(recomputed_coverage - reported_coverage) > 0.02:
         (method, reported_coverage, recomputed_coverage))
 if len(last.get('coverage_mask_sha256', '')) != 64:
     raise SystemExit('%s has no coverage-mask fingerprint' % method)
-if method in ('mappo_vision', 'mappo_gated_vision', 'mappo_gated_vision_thirds', 'mappo_gated_vision_interpolated', 'mappo_timed_memory', 'mappo_persistent_memory', 'mappo_hybrid', 'mappo_tail', 'mappo_tail_wheel_odom', 'mappo_tail_safe', 'mappo_tail_decentralized', 'mappo_adaptive_tail', 'mappo_adaptive_tail_decentralized') and int(last.get('vision_ready_robots', 0) or 0) != 3:
+if method in ('mappo_vision', 'mappo_gated_vision', 'mappo_gated_vision_thirds', 'mappo_gated_vision_interpolated', 'mappo_gated_vision_guided_recovery', 'mappo_timed_memory', 'mappo_persistent_memory', 'mappo_hybrid', 'mappo_tail', 'mappo_tail_wheel_odom', 'mappo_tail_safe', 'mappo_tail_decentralized', 'mappo_adaptive_tail', 'mappo_adaptive_tail_decentralized') and int(last.get('vision_ready_robots', 0) or 0) != 3:
     raise SystemExit('%s did not receive all three camera streams' % method)
 if method.startswith('mappo_') and int(last.get('policy_actions_received', 0) or 0) <= 0:
     raise SystemExit('%s did not receive any actor actions' % method)
@@ -270,6 +271,14 @@ PY
       fi
     done
   fi
+  if [[ "${method}" == "mappo_gated_vision_guided_recovery" ]]; then
+    for robot in robot1 robot2 robot3; do
+      if ! grep -Fq "[${robot}] recovery direction: mode=clearance" "${launch_log}"; then
+        echo "[hu_eval] ${method} did not enable clearance recovery for ${robot}" >&2
+        return 1
+      fi
+    done
+  fi
 }
 
 trap cleanup_ros EXIT
@@ -286,6 +295,7 @@ run_method() {
   local decentralized_actor_nodes=false
   local tail_completion_enabled=false
   local safety_shield_enabled=false
+  local recovery_direction_mode=random
   local method_vision_scoring_mode="${vision_scoring_mode}"
   local method_vision_projection_mode="${vision_projection_mode}"
   local method_pose_source="${pose_source}"
@@ -296,6 +306,7 @@ run_method() {
         "${method}" == "mappo_gated_vision" ||
         "${method}" == "mappo_gated_vision_thirds" ||
         "${method}" == "mappo_gated_vision_interpolated" ||
+        "${method}" == "mappo_gated_vision_guided_recovery" ||
         "${method}" == "mappo_timed_memory" ||
         "${method}" == "mappo_persistent_memory" ||
         "${method}" == "mappo_tail" ||
@@ -311,6 +322,7 @@ run_method() {
         "${method}" == "mappo_gated_vision" ||
         "${method}" == "mappo_gated_vision_thirds" ||
         "${method}" == "mappo_gated_vision_interpolated" ||
+        "${method}" == "mappo_gated_vision_guided_recovery" ||
         "${method}" == "mappo_timed_memory" ||
         "${method}" == "mappo_persistent_memory" ||
         "${method}" == "mappo_hybrid" ||
@@ -340,14 +352,19 @@ run_method() {
   fi
   if [[ "${method}" == "mappo_gated_vision" ||
         "${method}" == "mappo_gated_vision_thirds" ||
-        "${method}" == "mappo_gated_vision_interpolated" ]]; then
+        "${method}" == "mappo_gated_vision_interpolated" ||
+        "${method}" == "mappo_gated_vision_guided_recovery" ]]; then
     method_vision_scoring_mode=projected_obstacle_gated
   fi
   if [[ "${method}" == "mappo_gated_vision_thirds" ]]; then
     method_vision_projection_mode=thirds
   fi
-  if [[ "${method}" == "mappo_gated_vision_interpolated" ]]; then
+  if [[ "${method}" == "mappo_gated_vision_interpolated" ||
+        "${method}" == "mappo_gated_vision_guided_recovery" ]]; then
     method_vision_projection_mode=interpolated
+  fi
+  if [[ "${method}" == "mappo_gated_vision_guided_recovery" ]]; then
+    recovery_direction_mode=clearance
   fi
   if [[ "${method}" == "mappo_persistent_memory" ]]; then
     method_blacklist_ttl="${persistent_memory_ttl}"
@@ -424,6 +441,7 @@ run_method() {
       stuck_blacklist_ttl:="${method_blacklist_ttl}" \
       safety_shield_enabled:="${safety_shield_enabled}" \
       safety_stop_range:=0.20 safety_slow_range:=0.35 \
+      recovery_direction_mode:="${recovery_direction_mode}" \
       shutdown_on_done:=true \
       metrics_path:="${metrics_path}" >"${launch_log}" 2>&1 &
   local launch_pid=$!
@@ -522,6 +540,11 @@ elif [[ "${method_filter}" == "vision_projection_pair" ]]; then
     --positive-method mappo_gated_vision_interpolated \
     --negative-method mappo_gated_vision_thirds \
     --paired-output interpolated_vs_thirds_vision.csv
+elif [[ "${method_filter}" == "recovery_direction_pair" ]]; then
+  python3 "${summarizer}" "${output_dir}" \
+    --positive-method mappo_gated_vision_guided_recovery \
+    --negative-method mappo_gated_vision_interpolated \
+    --paired-output guided_vs_random_recovery.csv
 elif [[ "${method_filter}" == "memory_ablation" ]]; then
   python3 "${summarizer}" "${output_dir}" \
     --positive-method mappo_timed_memory \

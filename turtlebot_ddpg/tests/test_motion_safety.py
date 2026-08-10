@@ -12,7 +12,9 @@ MODULE_DIR = os.path.abspath(os.path.join(
     os.path.dirname(__file__), '..', 'scripts', 'voronoi_exploration'))
 sys.path.insert(0, MODULE_DIR)
 
-from motion_safety import clearance_speed_scale, frontal_clearance
+from motion_safety import (
+    clearance_guided_turn_direction, clearance_speed_scale,
+    frontal_clearance)
 
 
 class MotionSafetyTests(unittest.TestCase):
@@ -34,6 +36,28 @@ class MotionSafetyTests(unittest.TestCase):
     def test_invalid_configuration_is_rejected(self):
         with self.assertRaises(ValueError):
             clearance_speed_scale(0.3, stop_range=0.4, slow_range=0.3)
+
+    def test_recovery_turns_toward_clearer_left_side(self):
+        values = np.full(24, 2.0, dtype=np.float32)
+        increment = 2.0 * math.pi / 24.0
+        values[19:24] = 0.2
+        self.assertEqual(
+            clearance_guided_turn_direction(values, 0.0, increment), 1.0)
+
+    def test_recovery_turns_toward_clearer_right_side(self):
+        values = np.full(24, 2.0, dtype=np.float32)
+        increment = 2.0 * math.pi / 24.0
+        values[1:6] = 0.2
+        self.assertEqual(
+            clearance_guided_turn_direction(values, 0.0, increment), -1.0)
+
+    def test_recovery_preserves_fallback_when_sides_are_equal(self):
+        values = np.full(24, 1.0, dtype=np.float32)
+        increment = 2.0 * math.pi / 24.0
+        self.assertEqual(
+            clearance_guided_turn_direction(
+                values, 0.0, increment, fallback_direction=-1.0),
+            -1.0)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,6 @@
+field,value
+checkpoint_sha256,a3ba6f3a29ea70c39788ddfb9ab9aabf4d9fc07ab7e6a0a3c277bba29e443dc9
+world_profile,hu_aligned
+episode_seconds,90
+coverage_threshold,100
+source_directories,/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/evaluation/guided_recovery_hu_n5_20260810;/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/evaluation/guided_recovery_hu_n5b_20260810

@@ -22,6 +22,7 @@ Expected SHA-256:
 | Original vision sensitivity | `hu_aligned_vision_pair_selected_v1`, `vision_layout_b_pair_n5_20260805`, `layout_c_vision_pair_selected_v1` |
 | Confidence-gated vision | `gated_vision_layout_b_n5_20260806`, `gated_vision_layout_c_n5_20260806` |
 | Continuous visual projection | `vision_projection_hu_n5_20260810` |
+| Clearance-guided recovery stability | `guided_recovery_hu_n10_20260810`, plus its two five-seed source directories |
 | Per-robot actor processes | `decentralized_actor_pair_n5_20260805` |
 | Wheel-odometry audit | `pose_source_pair_n5_20260806` |
 | Optional safety shield | `safety_shield_pair_n5_20260805` |

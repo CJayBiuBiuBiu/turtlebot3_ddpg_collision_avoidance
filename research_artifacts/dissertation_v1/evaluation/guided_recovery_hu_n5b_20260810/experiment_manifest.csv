@@ -1,0 +1,46 @@
+field,value
+protocol,hu_aligned_frozen_ablation
+methods,mappo_gated_vision_interpolated;mappo_gated_vision_guided_recovery
+repeats,5
+episode_seconds,90
+wall_timeout_safety_budget,240
+coverage_threshold,100
+seed_base,11550
+gazebo_seed,matched to experiment_seed for each repeat
+checkpoint,/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/research_artifacts/dissertation_v1/checkpoint/mappo_selected_validation_v1.pt
+checkpoint_sha256,a3ba6f3a29ea70c39788ddfb9ab9aabf4d9fc07ab7e6a0a3c277bba29e443dc9
+checkpoint_update,26
+checkpoint_selection_rule,frozen endpoint supplied before evaluation; no test-seed ranking
+git_revision,1e17983b00e9d5d5cc2ac74b1d6a99c44cfc2714
+git_dirty_files,5
+source_snapshot_sha256,1425dcb08b23aa7ce8cc6f383c031bb0ec7edfdffb3ad00c0631b7e81a87996d
+world_profile,hu_aligned
+world_file,/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/turtlebot_ddpg/worlds/hu_aligned_arena.world
+world_file_sha256,ce359b4f610a93165142bb39546dc4a7d631c36cd9c48a9b967ddfdd1e81d0c7
+launch_file_sha256,929b3a35e0c383f49e61c94ff567b4468e857b9d0c50c0ea73e79d8d470e662f
+config_file_sha256,1c6b2657d2b64655f6297283abf8b3eddbd65556cbf392f03e346f17dcc0ffde
+ros_distribution,noetic
+gazebo_version,Gazebo multi-robot simulator; version 11.15.1 Copyright (C) 2012 Open Source Robotics Foundation. Released under the Apache 2 License. http://gazebosim.org   Gazebo multi-robot simulator; version 11.15.1 Copyright (C) 2012 Open Source Robotics Foundation. Released under the Apache 2 License. http://gazebosim.org
+render_backend,native_display
+python_version,Python 3.8.10
+torch_version,2.4.1+cpu
+network_deterministic,true
+coverage_definition,cumulative sensed truth-free cells divided by fixed explorable-cell mask
+near_collision_definition,laser clearance event at <=0.18 m rearmed at >=0.25 m
+primary_early_metric,mean_coverage_0_90_pct for fixed 90-second ablation; mean_coverage_0_300_pct for completion benchmark
+primary_completion_metric,time_to_97_s
+secondary_metrics,time_to_80_s;time_to_90_s;time_to_95_s;path_length_total_m;stuck_events;unique_stuck_regions;near_collision_events
+parameter_tuning,false
+paired_actor_deployment,single_process
+adaptive_execution_start_coverage,40.0
+adaptive_execution_full_coverage,90.0
+tail_completion_coverage,90.0
+vision_feature_scale,1.0
+vision_scoring_mode_default,projected_obstacle
+vision_projection_mode_default,thirds
+execution_path_cost_mode,euclidean
+pose_source_default,gazebo_truth
+timed_memory_ttl_s,90.0
+persistent_memory_ttl_s,1000000000.0
+safety_shield_stop_range_m,0.20
+safety_shield_slow_range_m,0.35

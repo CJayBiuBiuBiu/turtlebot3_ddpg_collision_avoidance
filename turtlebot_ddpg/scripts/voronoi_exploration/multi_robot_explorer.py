@@ -29,7 +29,9 @@ import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 import tensorflow.compat.v1.keras.backend as K
 
-from motion_safety import clearance_speed_scale, frontal_clearance
+from motion_safety import (
+    clearance_guided_turn_direction, clearance_speed_scale,
+    frontal_clearance)
 
 STATE_DIM = 28
 WEIGHTS_PATH = os.path.normpath(os.path.join(
@@ -240,6 +242,11 @@ def main():
         '~safety_stop_range', 0.20))
     safety_slow_range = float(rospy.get_param(
         '~safety_slow_range', 0.35))
+    recovery_direction_mode = rospy.get_param(
+        '~recovery_direction_mode', 'clearance')
+    if recovery_direction_mode not in ('random', 'clearance'):
+        raise ValueError(
+            'recovery_direction_mode must be random or clearance')
     agent = RobotAgent(
         robot_name, experiment_seed=experiment_seed,
         near_collision_range=near_collision_range,
@@ -255,6 +262,8 @@ def main():
     rospy.loginfo('[%s] safety shield: enabled=%s, stop<=%.3fm, full-speed>=%.3fm',
                   robot_name, safety_shield_enabled,
                   safety_stop_range, safety_slow_range)
+    rospy.loginfo('[%s] recovery direction: mode=%s',
+                  robot_name, recovery_direction_mode)
 
     rospy.loginfo("[%s] waiting for first laser/model_states message...", robot_name)
     agent.laser_ig.get_msg(timeout=10.0)
@@ -299,7 +308,14 @@ def main():
                     rospy.logwarn("[%s] stuck detected (moved %.2fm in %.1fs), backing off",
                                    robot_name, moved, STUCK_CHECK_WINDOW)
                     recovering_until = now + RECOVERY_DURATION
-                    recovery_turn_dir = agent.rng.choice([-1.0, 1.0])
+                    random_direction = agent.rng.choice([-1.0, 1.0])
+                    if recovery_direction_mode == 'clearance':
+                        scan = agent.laser_ig.get_msg(timeout=0.1)
+                        recovery_turn_dir = clearance_guided_turn_direction(
+                            scan.ranges, scan.angle_min, scan.angle_increment,
+                            fallback_direction=random_direction)
+                    else:
+                        recovery_turn_dir = random_direction
                     # Tell the coordinator to stop immediately retrying this
                     # spot. The exploration grid remains unchanged so the
                     # coverage metric is not inflated by recovery logic.

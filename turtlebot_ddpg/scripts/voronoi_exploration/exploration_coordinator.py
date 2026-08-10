@@ -213,7 +213,7 @@ METRIC_FIELDS = [
     'goal_assignments', 'goals_reached', 'no_path_fallbacks',
     'no_path_start_occupied', 'no_path_goal_occupied',
     'no_path_disconnected',
-    'stuck_events', 'unique_stuck_regions',
+    'stuck_events', 'unique_stuck_regions', 'recovery_direction_mode',
     'near_collision_events', 'near_collision_active_s',
     'near_collision_sample_ratio', 'minimum_laser_clearance_m',
     'near_collision_range_m', 'near_collision_clear_range_m',
@@ -454,6 +454,11 @@ class Coordinator(object):
             '~tail_completion_coverage', 90.0))
         self.stuck_blacklist_ttl = float(rospy.get_param(
             '~stuck_blacklist_ttl', 90.0))
+        self.recovery_direction_mode = rospy.get_param(
+            '~recovery_direction_mode', 'clearance')
+        if self.recovery_direction_mode not in ('random', 'clearance'):
+            raise ValueError(
+                'recovery_direction_mode must be random or clearance')
         self.near_collision_range = float(rospy.get_param(
             '~near_collision_range', 0.18))
         self.near_collision_clear_range = float(rospy.get_param(
@@ -1304,6 +1309,7 @@ class Coordinator(object):
             'no_path_disconnected': self.no_path_disconnected,
             'stuck_events': sum(self.stuck_events.values()),
             'unique_stuck_regions': self.unique_stuck_regions,
+            'recovery_direction_mode': self.recovery_direction_mode,
             'near_collision_events': sum(self.near_collision_events.values()),
             'near_collision_active_s': '%.4f' % clearance['active_seconds'],
             'near_collision_sample_ratio': '%.6f' % clearance['sample_ratio'],
