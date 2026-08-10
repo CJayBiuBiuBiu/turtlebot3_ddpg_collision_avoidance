@@ -15,6 +15,7 @@ adaptive_full_coverage="${ADAPTIVE_EXECUTION_FULL_COVERAGE:-90.0}"
 tail_completion_coverage="${TAIL_COMPLETION_COVERAGE:-90.0}"
 vision_feature_scale="${VISION_FEATURE_SCALE:-1.0}"
 vision_scoring_mode="${VISION_SCORING_MODE:-projected_obstacle}"
+vision_projection_mode="${VISION_PROJECTION_MODE:-thirds}"
 execution_path_cost_mode="${EXECUTION_PATH_COST_MODE:-euclidean}"
 pose_source="${POSE_SOURCE:-gazebo_truth}"
 communication_delay_s="${COMMUNICATION_DELAY_SECONDS:-0.0}"
@@ -56,6 +57,7 @@ if [[ "${method_filter}" != "all" ]]; then
     core_vision_ablation) methods=(geometric execution_aware mappo_no_vision mappo_vision) ;;
     vision_pair) methods=(mappo_no_vision mappo_vision) ;;
     gated_vision_pair) methods=(mappo_no_vision mappo_gated_vision) ;;
+    vision_projection_pair) methods=(mappo_gated_vision_thirds mappo_gated_vision_interpolated) ;;
     memory_ablation) methods=(mappo_timed_memory mappo_persistent_memory) ;;
     pose_source_pair) methods=(mappo_tail mappo_tail_wheel_odom) ;;
     improvement_pair) methods=(mappo_hybrid mappo_tail) ;;
@@ -64,11 +66,12 @@ if [[ "${method_filter}" != "all" ]]; then
     safety_pair) methods=(mappo_tail mappo_tail_safe) ;;
     improvement_ablation) methods=(geometric execution_aware adaptive_execution_aware mappo_hybrid mappo_tail mappo_adaptive_tail) ;;
     hu_ablation) methods=(geometric execution_aware mappo_no_vision mappo_vision mappo_hybrid) ;;
-    geometric|execution_aware|adaptive_execution_aware|mappo_no_vision|mappo_vision|mappo_gated_vision|mappo_timed_memory|mappo_persistent_memory|mappo_hybrid|mappo_tail|mappo_tail_wheel_odom|mappo_tail_safe|mappo_tail_decentralized|mappo_adaptive_tail|mappo_adaptive_tail_decentralized) methods=("${method_filter}") ;;
+    geometric|execution_aware|adaptive_execution_aware|mappo_no_vision|mappo_vision|mappo_gated_vision|mappo_gated_vision_thirds|mappo_gated_vision_interpolated|mappo_timed_memory|mappo_persistent_memory|mappo_hybrid|mappo_tail|mappo_tail_wheel_odom|mappo_tail_safe|mappo_tail_decentralized|mappo_adaptive_tail|mappo_adaptive_tail_decentralized) methods=("${method_filter}") ;;
     *) echo "Unknown method filter: ${method_filter}" >&2; exit 2 ;;
   esac
 fi
 mkdir -p "${output_dir}"
+output_dir="$(cd "${output_dir}" && pwd)"
 
 render_backend="native_display"
 render_prefix=()
@@ -153,6 +156,7 @@ printf '%s\n' \
   "tail_completion_coverage,${tail_completion_coverage}" \
   "vision_feature_scale,${vision_feature_scale}" \
   "vision_scoring_mode_default,${vision_scoring_mode}" \
+  "vision_projection_mode_default,${vision_projection_mode}" \
   "execution_path_cost_mode,${execution_path_cost_mode}" \
   "pose_source_default,${pose_source}" \
   "timed_memory_ttl_s,${timed_memory_ttl}" \
@@ -238,7 +242,7 @@ if abs(recomputed_coverage - reported_coverage) > 0.02:
         (method, reported_coverage, recomputed_coverage))
 if len(last.get('coverage_mask_sha256', '')) != 64:
     raise SystemExit('%s has no coverage-mask fingerprint' % method)
-if method in ('mappo_vision', 'mappo_gated_vision', 'mappo_timed_memory', 'mappo_persistent_memory', 'mappo_hybrid', 'mappo_tail', 'mappo_tail_wheel_odom', 'mappo_tail_safe', 'mappo_tail_decentralized', 'mappo_adaptive_tail', 'mappo_adaptive_tail_decentralized') and int(last.get('vision_ready_robots', 0) or 0) != 3:
+if method in ('mappo_vision', 'mappo_gated_vision', 'mappo_gated_vision_thirds', 'mappo_gated_vision_interpolated', 'mappo_timed_memory', 'mappo_persistent_memory', 'mappo_hybrid', 'mappo_tail', 'mappo_tail_wheel_odom', 'mappo_tail_safe', 'mappo_tail_decentralized', 'mappo_adaptive_tail', 'mappo_adaptive_tail_decentralized') and int(last.get('vision_ready_robots', 0) or 0) != 3:
     raise SystemExit('%s did not receive all three camera streams' % method)
 if method.startswith('mappo_') and int(last.get('policy_actions_received', 0) or 0) <= 0:
     raise SystemExit('%s did not receive any actor actions' % method)
@@ -283,12 +287,15 @@ run_method() {
   local tail_completion_enabled=false
   local safety_shield_enabled=false
   local method_vision_scoring_mode="${vision_scoring_mode}"
+  local method_vision_projection_mode="${vision_projection_mode}"
   local method_pose_source="${pose_source}"
   local method_blacklist_ttl="${timed_memory_ttl}"
 
   if [[ "${method}" == "mappo_no_vision" ||
         "${method}" == "mappo_vision" || "${method}" == "mappo_hybrid" ||
         "${method}" == "mappo_gated_vision" ||
+        "${method}" == "mappo_gated_vision_thirds" ||
+        "${method}" == "mappo_gated_vision_interpolated" ||
         "${method}" == "mappo_timed_memory" ||
         "${method}" == "mappo_persistent_memory" ||
         "${method}" == "mappo_tail" ||
@@ -302,6 +309,8 @@ run_method() {
   fi
   if [[ "${method}" == "mappo_vision" ||
         "${method}" == "mappo_gated_vision" ||
+        "${method}" == "mappo_gated_vision_thirds" ||
+        "${method}" == "mappo_gated_vision_interpolated" ||
         "${method}" == "mappo_timed_memory" ||
         "${method}" == "mappo_persistent_memory" ||
         "${method}" == "mappo_hybrid" ||
@@ -329,8 +338,16 @@ run_method() {
   if [[ "${method}" == "mappo_tail_decentralized" ]]; then
     decentralized_actor_nodes=true
   fi
-  if [[ "${method}" == "mappo_gated_vision" ]]; then
+  if [[ "${method}" == "mappo_gated_vision" ||
+        "${method}" == "mappo_gated_vision_thirds" ||
+        "${method}" == "mappo_gated_vision_interpolated" ]]; then
     method_vision_scoring_mode=projected_obstacle_gated
+  fi
+  if [[ "${method}" == "mappo_gated_vision_thirds" ]]; then
+    method_vision_projection_mode=thirds
+  fi
+  if [[ "${method}" == "mappo_gated_vision_interpolated" ]]; then
+    method_vision_projection_mode=interpolated
   fi
   if [[ "${method}" == "mappo_persistent_memory" ]]; then
     method_blacklist_ttl="${persistent_memory_ttl}"
@@ -382,6 +399,7 @@ run_method() {
       execution_path_cost_mode:="${execution_path_cost_mode}" \
       vision_enabled:="${vision_enabled}" \
       vision_scoring_mode:="${method_vision_scoring_mode}" \
+      vision_projection_mode:="${method_vision_projection_mode}" \
       vision_feature_scale:="${vision_feature_scale}" \
       start_smoke_policy:=false \
       start_network_policy:="${network_policy}" \
@@ -499,6 +517,11 @@ elif [[ "${method_filter}" == "gated_vision_pair" ]]; then
     --positive-method mappo_gated_vision \
     --negative-method mappo_no_vision \
     --paired-output gated_vision_feature_ablation.csv
+elif [[ "${method_filter}" == "vision_projection_pair" ]]; then
+  python3 "${summarizer}" "${output_dir}" \
+    --positive-method mappo_gated_vision_interpolated \
+    --negative-method mappo_gated_vision_thirds \
+    --paired-output interpolated_vs_thirds_vision.csv
 elif [[ "${method_filter}" == "memory_ablation" ]]; then
   python3 "${summarizer}" "${output_dir}" \
     --positive-method mappo_timed_memory \

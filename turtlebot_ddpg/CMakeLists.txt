@@ -193,6 +193,7 @@ install(PROGRAMS
   scripts/run_mappo_training.sh
   scripts/run_mappo_episodes.sh
   scripts/run_mappo_vision_seed_study.sh
+  scripts/run_mappo_independent_seed_extension.sh
   scripts/run_mapping_ablation.sh
   scripts/run_paired_evaluation.sh
   scripts/run_thesis_experiments.sh

@@ -112,19 +112,24 @@ def plot_training(root, output_dir):
     for _, directory in conditions:
         condition_rows.append(read_rows(
             root / "outputs/evaluation" / directory / "independent_seed_summary.csv"))
-    seeds = [row["training_seed"] for row in condition_rows[0]]
+    row_maps = [
+        {row["training_seed"]: row for row in rows}
+        for rows in condition_rows
+    ]
+    seeds = sorted(set.intersection(*(set(rows) for rows in row_maps)))
     colors = ["#7a7a7a", "#3f8f5f", "#2468a2"]
 
     fig, axes = plt.subplots(1, 2, figsize=(9.2, 3.5))
     x = np.arange(len(seeds))
     width = 0.24
     for index, ((label, _), rows, color) in enumerate(
-            zip(conditions, condition_rows, colors)):
+            zip(conditions, row_maps, colors)):
         positions = x + (index - 1) * width
+        ordered_rows = [rows[seed] for seed in seeds]
         axes[0].bar(
-            positions, [value(row, "coverage_pct_mean") for row in rows],
+            positions, [value(row, "coverage_pct_mean") for row in ordered_rows],
             width=width,
-            yerr=[value(row, "coverage_pct_std") for row in rows],
+            yerr=[value(row, "coverage_pct_std") for row in ordered_rows],
             capsize=3, color=color, label=label)
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(seeds)
@@ -136,15 +141,17 @@ def plot_training(root, output_dir):
 
     aggregate_values = []
     aggregate_errors = []
-    for _, directory in conditions:
+    aggregate_labels = []
+    for (label, directory), rows in zip(conditions, condition_rows):
         aggregate = read_rows(
             root / "outputs/evaluation" / directory /
             "independent_seed_aggregate.csv")[0]
         aggregate_values.append(value(aggregate, "coverage_pct_mean_across_seeds"))
         aggregate_errors.append(value(
             aggregate, "coverage_pct_mean_between_seed_std"))
+        aggregate_labels.append("%s\n(n=%d)" % (label, len(rows)))
     bar_panel(
-        axes[1], [label for label, _ in conditions], aggregate_values,
+        axes[1], aggregate_labels, aggregate_values,
         aggregate_errors, "Coverage after 90 s (%)",
         "Across-seed mean and variability", colors)
     fig.tight_layout()

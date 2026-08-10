@@ -1,0 +1,13 @@
+field,value
+episodes,6
+episode_seconds,120
+rollout_length,32
+decision_interval,2.5
+world_profile,hu_aligned
+training_seed,5505
+vision_enabled,true
+render_backend,native_display
+checkpoint,/home/ros/catkin_ws/src/turtlebot3_ddpg_collision_avoidance/outputs/checkpoints/independent_seed_study/mappo_from_scratch_seed_5505.pt
+checkpoint_initial_state,absent_random_initialisation
+checkpoint_initial_sha256,
+checkpoint_initial_update,0

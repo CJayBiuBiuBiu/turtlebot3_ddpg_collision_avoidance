@@ -6,6 +6,7 @@ import numpy as np
 
 VISION_SCORING_MODES = (
     'projected_obstacle', 'projected_obstacle_gated', 'canny')
+VISION_PROJECTION_MODES = ('thirds', 'interpolated')
 
 
 def _thirds(array):
@@ -101,3 +102,35 @@ def openness_from_image(img_rgb, mode='projected_obstacle'):
     if mode == 'canny':
         return canny_openness(img_rgb)
     raise ValueError('unknown vision scoring mode: %s' % mode)
+
+
+def directional_openness(scores, relative_bearing, camera_fov,
+                         mode='thirds'):
+    """Project three image-region scores onto one frontier bearing.
+
+    ``thirds`` preserves the original hard image partition. ``interpolated``
+    treats the three scores as samples at the region centres and linearly
+    interpolates between them. This removes a discontinuous score change when
+    a frontier moves across a region boundary.
+    """
+    if mode not in VISION_PROJECTION_MODES:
+        raise ValueError('unknown vision projection mode: %s' % mode)
+    if len(scores) != 3:
+        raise ValueError('expected left, centre, and right scores')
+    camera_fov = float(camera_fov)
+    if camera_fov <= 0.0:
+        raise ValueError('camera_fov must be positive')
+    relative_bearing = float(relative_bearing)
+    if abs(relative_bearing) > camera_fov / 2.0:
+        return 0.0
+    left, centre, right = (float(value) for value in scores)
+    if mode == 'thirds':
+        if relative_bearing < -camera_fov / 6.0:
+            return left
+        if relative_bearing > camera_fov / 6.0:
+            return right
+        return centre
+    anchors = np.asarray([-camera_fov / 3.0, 0.0, camera_fov / 3.0])
+    return float(np.interp(
+        relative_bearing, anchors, (left, centre, right),
+        left=left, right=right))

@@ -12,7 +12,8 @@ SCRIPT_DIR = os.path.join(
 sys.path.insert(0, SCRIPT_DIR)
 
 from vision_scoring import (
-    confidence_gated_projected_obstacle_openness, openness_from_image,
+    confidence_gated_projected_obstacle_openness, directional_openness,
+    openness_from_image,
     projected_obstacle_confidence, projected_obstacle_openness)
 
 
@@ -73,6 +74,37 @@ class VisionScoringTests(unittest.TestCase):
     def test_unknown_mode_is_rejected(self):
         with self.assertRaises(ValueError):
             openness_from_image(synthetic_camera_frame((120, 70, 45)), 'unknown')
+
+    def test_interpolated_projection_is_continuous_at_old_third_boundary(self):
+        scores = (0.2, 0.8, 0.4)
+        fov = 1.2
+        below = directional_openness(
+            scores, -fov / 6.0 - 1e-6, fov, 'interpolated')
+        above = directional_openness(
+            scores, -fov / 6.0 + 1e-6, fov, 'interpolated')
+        self.assertAlmostEqual(below, above, places=5)
+
+    def test_interpolated_projection_matches_region_centres(self):
+        scores = (0.2, 0.8, 0.4)
+        fov = 1.2
+        self.assertAlmostEqual(
+            directional_openness(scores, -fov / 3.0, fov, 'interpolated'),
+            scores[0])
+        self.assertAlmostEqual(
+            directional_openness(scores, 0.0, fov, 'interpolated'), scores[1])
+        self.assertAlmostEqual(
+            directional_openness(scores, fov / 3.0, fov, 'interpolated'),
+            scores[2])
+
+    def test_projection_returns_zero_outside_camera_view(self):
+        self.assertEqual(
+            directional_openness((0.2, 0.8, 0.4), 0.7, 1.2,
+                                 'interpolated'),
+            0.0)
+
+    def test_unknown_projection_mode_is_rejected(self):
+        with self.assertRaises(ValueError):
+            directional_openness((0.2, 0.8, 0.4), 0.0, 1.2, 'unknown')
 
 
 if __name__ == '__main__':

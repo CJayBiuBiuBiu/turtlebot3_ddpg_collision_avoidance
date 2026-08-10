@@ -21,10 +21,15 @@ Expected SHA-256:
 | Timed recovery memory | `memory_ablation_n5_20260806` |
 | Original vision sensitivity | `hu_aligned_vision_pair_selected_v1`, `vision_layout_b_pair_n5_20260805`, `layout_c_vision_pair_selected_v1` |
 | Confidence-gated vision | `gated_vision_layout_b_n5_20260806`, `gated_vision_layout_c_n5_20260806` |
+| Continuous visual projection | `vision_projection_hu_n5_20260810` |
 | Per-robot actor processes | `decentralized_actor_pair_n5_20260805` |
 | Wheel-odometry audit | `pose_source_pair_n5_20260806` |
 | Optional safety shield | `safety_shield_pair_n5_20260805` |
-| Independent training seeds | the three `independent_training_seed_study*` directories |
+| Independent training seeds | the three `independent_training_seed_study*` directories; the short masked directory contains five seeds |
+
+The added seed-4404 and seed-5505 checkpoints are stored under
+`checkpoint/independent_seed_study/`. Their six-update training records are in
+`training/independent_seed_4404/` and `training/independent_seed_5505/`.
 
 Combined directories contain summaries and provenance. Their source directories
 contain the per-second raw metrics and launch logs. Failed predeclared health
@@ -40,4 +45,3 @@ python3 research_artifacts/dissertation_v1/verify_artifact.py
 
 The script verifies every file listed in `checksums.sha256` and checks the
 frozen checkpoint against the identifier reported in the dissertation.
-

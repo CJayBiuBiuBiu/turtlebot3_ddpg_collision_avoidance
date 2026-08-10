@@ -49,7 +49,9 @@ from recovery_memory import TimedSpatialBlacklist
 from safety_metrics import ClearanceTelemetry
 from scan_mapping import (
     bresenham_cells, clear_robot_footprints, update_grid_from_scan)
-from vision_scoring import openness_from_image, VISION_SCORING_MODES
+from vision_scoring import (
+    directional_openness, openness_from_image, VISION_PROJECTION_MODES,
+    VISION_SCORING_MODES)
 from wheel_odometry import integrate_wheel_positions
 
 ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
@@ -218,7 +220,8 @@ METRIC_FIELDS = [
     'path_length_total_m', 'execution_path_cost_mode',
     'robot1_x', 'robot1_y', 'robot2_x', 'robot2_y',
     'robot3_x', 'robot3_y',
-    'vision_enabled', 'vision_scoring_mode', 'vision_feature_scale',
+    'vision_enabled', 'vision_scoring_mode', 'vision_projection_mode',
+    'vision_feature_scale',
     'vision_ready_robots',
     'vision_image_mean_openness', 'vision_token_mean_openness',
     'vision_token_nonzero_ratio', 'vision_observation_count',
@@ -373,6 +376,11 @@ class Coordinator(object):
         if self.vision_scoring_mode not in VISION_SCORING_MODES:
             raise ValueError('vision_scoring_mode must be one of %s' %
                              (VISION_SCORING_MODES,))
+        self.vision_projection_mode = rospy.get_param(
+            '~vision_projection_mode', 'thirds')
+        if self.vision_projection_mode not in VISION_PROJECTION_MODES:
+            raise ValueError('vision_projection_mode must be one of %s' %
+                             (VISION_PROJECTION_MODES,))
         self.vision_feature_scale = float(rospy.get_param(
             '~vision_feature_scale', 1.0))
         if not 0.0 <= self.vision_feature_scale <= 1.0:
@@ -834,12 +842,8 @@ class Coordinator(object):
         rel = (bearing - robot_yaw + math.pi) % (2 * math.pi) - math.pi
         if abs(rel) > CAMERA_FOV / 2.0:
             return 0.0
-        left, centre, right = scores
-        if rel < -CAMERA_FOV / 6.0:
-            return left
-        if rel > CAMERA_FOV / 6.0:
-            return right
-        return centre
+        return directional_openness(
+            scores, rel, CAMERA_FOV, mode=self.vision_projection_mode)
 
     def _cell_index(self, x, y):
         ix = int(np.clip((x - ARENA[0]) / GRID_RES, 0, NX - 1))
@@ -1319,6 +1323,7 @@ class Coordinator(object):
             'robot3_y': self.positions.get('robot3', ('', ''))[1],
             'vision_enabled': int(self.vision_enabled),
             'vision_scoring_mode': self.vision_scoring_mode,
+            'vision_projection_mode': self.vision_projection_mode,
             'vision_feature_scale': '%.4f' % self.vision_feature_scale,
             'vision_ready_robots': len(self.vision_scores),
             'vision_image_mean_openness': (

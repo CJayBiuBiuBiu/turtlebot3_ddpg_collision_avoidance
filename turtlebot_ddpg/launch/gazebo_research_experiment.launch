@@ -46,6 +46,8 @@
        doc="Enable camera openness in assignment costs and policy tokens"/>
   <arg name="vision_scoring_mode" default="projected_obstacle"
        doc="projected_obstacle (default), projected_obstacle_gated, or canny (legacy ablation)"/>
+  <arg name="vision_projection_mode" default="thirds"
+       doc="thirds (checkpoint-compatible baseline) or interpolated"/>
   <arg name="vision_feature_scale" default="1.0"
        doc="Scale applied to camera openness before it enters frontier costs and MAPPO tokens"/>
   <arg name="mapping_mode" default="laser_scan"
@@ -119,6 +121,7 @@
     <param name="selection_mode" value="$(arg selection_mode)"/>
     <param name="vision_enabled" value="$(arg vision_enabled)"/>
     <param name="vision_scoring_mode" value="$(arg vision_scoring_mode)"/>
+    <param name="vision_projection_mode" value="$(arg vision_projection_mode)"/>
     <param name="vision_feature_scale" value="$(arg vision_feature_scale)"/>
     <param name="mapping_mode" value="$(arg mapping_mode)"/>
     <param name="pose_source" value="$(arg pose_source)"/>
