@@ -99,3 +99,20 @@ class CentralizedCritic(nn.Module):
         local = local.reshape(batch, robots, -1)
         team = torch.cat([local.mean(dim=1), local.max(dim=1).values], dim=-1)
         return self.value_head(team).squeeze(-1)
+
+
+class IndependentCritic(nn.Module):
+    """Shared local value function used by the IPPO comparison baseline."""
+
+    def __init__(self):
+        super(IndependentCritic, self).__init__()
+        self.local_encoder = LocalContextEncoder()
+        self.value_head = nn.Sequential(
+            _init_layer(nn.Linear(LocalContextEncoder.output_dim, 128), gain=1.414),
+            nn.ReLU(), _init_layer(nn.Linear(128, 64), gain=1.414), nn.ReLU(),
+            _init_layer(nn.Linear(64, 1), gain=1.0))
+
+    def forward(self, bev, robot_state, teammates, teammate_mask):
+        local = self.local_encoder(
+            bev, robot_state, teammates, teammate_mask)
+        return self.value_head(local).squeeze(-1)

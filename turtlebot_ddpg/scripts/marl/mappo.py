@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 from torch.distributions import Categorical
 
-from networks import CentralizedCritic, FrontierActor
+from networks import CentralizedCritic, FrontierActor, IndependentCritic
 
 
 def compute_gae(rewards, values, dones, last_value, gamma=0.99, gae_lambda=0.95):
@@ -54,7 +54,10 @@ class RolloutBuffer(object):
         self.actions.append(np.asarray(actions, dtype=np.int64))
         self.log_probs.append(np.asarray(log_probs, dtype=np.float32))
         self.rewards.append(float(reward))
-        self.values.append(float(value))
+        value_array = np.asarray(value, dtype=np.float32)
+        self.values.append(
+            float(value_array) if value_array.ndim == 0 else
+            value_array.copy())
         self.dones.append(bool(done))
 
     def __len__(self):
@@ -79,6 +82,36 @@ class RolloutBuffer(object):
             'old_log_probs': np.stack(self.log_probs).reshape(-1),
             'advantages': advantages.numpy().repeat(robots),
             'returns': returns.numpy(),
+        }
+
+
+class IndependentRolloutBuffer(RolloutBuffer):
+    """Rollout storage with one local value estimate per robot for IPPO."""
+
+    def build_batch(self, last_value, gamma=0.99, gae_lambda=0.95):
+        if not self.observations:
+            raise ValueError('rollout is empty')
+        team_obs = dict((key, np.stack([step[key] for step in self.observations]))
+                        for key in self.observations[0])
+        steps, robots = team_obs['bev'].shape[:2]
+        values = np.stack(self.values).reshape(steps, robots)
+        rewards = np.repeat(
+            np.asarray(self.rewards, dtype=np.float32)[:, None], robots, axis=1)
+        dones = np.repeat(
+            np.asarray(self.dones, dtype=np.float32)[:, None], robots, axis=1)
+        advantages, returns = compute_gae(
+            rewards, values, dones, np.asarray(last_value, dtype=np.float32),
+            gamma=gamma, gae_lambda=gae_lambda)
+        actor_obs = dict(
+            (key, value.reshape(steps * robots, *value.shape[2:]))
+            for key, value in team_obs.items())
+        return {
+            'actor_obs': actor_obs,
+            'team_obs': team_obs,
+            'actions': np.stack(self.actions).reshape(-1),
+            'old_log_probs': np.stack(self.log_probs).reshape(-1),
+            'advantages': advantages.numpy().reshape(-1),
+            'returns': returns.numpy().reshape(-1),
         }
 
 
@@ -207,3 +240,115 @@ class MAPPO(object):
             self.actor_optimizer.load_state_dict(checkpoint['actor_optimizer'])
             self.critic_optimizer.load_state_dict(checkpoint['critic_optimizer'])
         return checkpoint.get('metadata', {})
+
+    def load_actor(self, path):
+        """Load only the shared actor for architecture-neutral evaluation."""
+        checkpoint = torch.load(
+            path, map_location=self.device, weights_only=False)
+        self.actor.load_state_dict(checkpoint['actor'])
+        return checkpoint.get('metadata', {})
+
+
+class IPPO(MAPPO):
+    """Independent-PPO baseline with shared actors and local value functions.
+
+    The actor, observations, action mask, reward and low-level controller are
+    identical to MAPPO. Only the centralized team critic is removed, making
+    this a controlled baseline for centralized-training benefits.
+    """
+
+    def __init__(self, max_frontiers=48, actor_lr=3e-4, critic_lr=3e-4,
+                 clip_eps=0.2, entropy_coef=0.01, value_coef=0.5,
+                 max_grad_norm=0.5, device='cpu'):
+        super(IPPO, self).__init__(
+            max_frontiers=max_frontiers, actor_lr=actor_lr,
+            critic_lr=critic_lr, clip_eps=clip_eps,
+            entropy_coef=entropy_coef, value_coef=value_coef,
+            max_grad_norm=max_grad_norm, device=device)
+        self.critic = IndependentCritic().to(self.device)
+        self.critic_optimizer = torch.optim.Adam(
+            self.critic.parameters(), lr=critic_lr)
+
+    def agent_values(self, obs):
+        values = _to_tensor_dict(obs, self.device)
+        return self.critic(
+            values['bev'], values['robot_state'], values['teammates'],
+            values['teammate_mask'])
+
+    def update(self, batch, epochs=5, minibatch_size=256):
+        actor_obs = _to_tensor_dict(batch['actor_obs'], self.device)
+        actions = torch.as_tensor(
+            batch['actions'], dtype=torch.long, device=self.device)
+        old_log_probs = torch.as_tensor(
+            batch['old_log_probs'], dtype=torch.float32, device=self.device)
+        advantages = torch.as_tensor(
+            batch['advantages'], dtype=torch.float32, device=self.device)
+        returns = torch.as_tensor(
+            batch['returns'], dtype=torch.float32, device=self.device)
+        advantages = (advantages - advantages.mean()) / (
+            advantages.std() + 1e-8)
+
+        samples = actions.shape[0]
+        actor_diagnostics = []
+        critic_diagnostics = []
+        for _ in range(int(epochs)):
+            actor_order = torch.randperm(samples, device=self.device)
+            for start in range(0, samples, minibatch_size):
+                indices = actor_order[start:start + minibatch_size]
+                selected = dict(
+                    (key, value[indices]) for key, value in actor_obs.items())
+                distribution = Categorical(logits=self.actor(
+                    selected['bev'], selected['tokens'],
+                    selected['robot_state'], selected['teammates'],
+                    selected['teammate_mask'], selected['action_mask']))
+                new_log_probs = distribution.log_prob(actions[indices])
+                ratio = torch.exp(new_log_probs - old_log_probs[indices])
+                unclipped = ratio * advantages[indices]
+                clipped = torch.clamp(
+                    ratio, 1.0 - self.clip_eps,
+                    1.0 + self.clip_eps) * advantages[indices]
+                actor_loss = -torch.min(unclipped, clipped).mean()
+                entropy = distribution.entropy().mean()
+
+                self.actor_optimizer.zero_grad()
+                (actor_loss - self.entropy_coef * entropy).backward()
+                actor_grad = torch.nn.utils.clip_grad_norm_(
+                    self.actor.parameters(), self.max_grad_norm)
+                self.actor_optimizer.step()
+                actor_diagnostics.append({
+                    'actor_loss': float(actor_loss.detach().cpu()),
+                    'entropy': float(entropy.detach().cpu()),
+                    'actor_grad_norm': float(actor_grad.detach().cpu()),
+                    'approx_kl': float((
+                        old_log_probs[indices] - new_log_probs
+                    ).mean().detach().cpu()),
+                    'clip_fraction': float((
+                        (ratio - 1.0).abs() > self.clip_eps
+                    ).float().mean().detach().cpu()),
+                })
+
+            critic_order = torch.randperm(samples, device=self.device)
+            for start in range(0, samples, minibatch_size):
+                indices = critic_order[start:start + minibatch_size]
+                selected = dict(
+                    (key, value[indices]) for key, value in actor_obs.items())
+                values = self.critic(
+                    selected['bev'], selected['robot_state'],
+                    selected['teammates'], selected['teammate_mask'])
+                value_loss = F.smooth_l1_loss(values, returns[indices])
+                self.critic_optimizer.zero_grad()
+                (self.value_coef * value_loss).backward()
+                critic_grad = torch.nn.utils.clip_grad_norm_(
+                    self.critic.parameters(), self.max_grad_norm)
+                self.critic_optimizer.step()
+                critic_diagnostics.append({
+                    'value_loss': float(value_loss.detach().cpu()),
+                    'critic_grad_norm': float(critic_grad.detach().cpu()),
+                })
+
+        diagnostics = {}
+        for values in (actor_diagnostics, critic_diagnostics):
+            for key in values[0]:
+                diagnostics[key] = float(np.mean(
+                    [item[key] for item in values]))
+        return diagnostics

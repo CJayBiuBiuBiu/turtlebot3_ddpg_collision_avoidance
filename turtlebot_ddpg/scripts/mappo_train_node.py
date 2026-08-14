@@ -19,7 +19,7 @@ SCRIPT_DIR = os.path.dirname(__file__)
 MARL_DIR = os.path.join(SCRIPT_DIR, 'marl')
 sys.path.insert(0, MARL_DIR)
 
-from mappo import MAPPO, RolloutBuffer
+from mappo import IPPO, MAPPO, IndependentRolloutBuffer, RolloutBuffer
 from observation_adapter import ObservationSpec, adapt_observation, stack_observations
 from turtlebot_ddpg.msg import FrontierAction, FrontierObservation
 
@@ -36,6 +36,10 @@ class MAPPOTrainerNode(object):
         np.random.seed(self.training_seed)
         torch.manual_seed(self.training_seed)
         self.robot_names = rospy.get_param('~robot_names', DEFAULT_ROBOTS)
+        self.algorithm = str(rospy.get_param(
+            '~algorithm', 'mappo')).strip().lower()
+        if self.algorithm not in ('mappo', 'ippo'):
+            raise ValueError('algorithm must be mappo or ippo')
         self.spec = ObservationSpec(
             bev_size=int(rospy.get_param('~bev_size', 64)),
             max_frontiers=int(rospy.get_param('~max_frontiers', 48)),
@@ -68,14 +72,16 @@ class MAPPOTrainerNode(object):
             '~diagnostics_log', str(PROJECT_ROOT / 'outputs' /
                                     'mappo_diagnostics.csv')))
 
-        self.policy = MAPPO(max_frontiers=self.spec.max_frontiers)
+        policy_class = MAPPO if self.algorithm == 'mappo' else IPPO
+        self.policy = policy_class(max_frontiers=self.spec.max_frontiers)
         self.update_count = 0
         if os.path.isfile(self.checkpoint):
             metadata = self.policy.load(self.checkpoint, load_optimizers=True)
             self.update_count = int(metadata.get('updates', 0))
             rospy.loginfo('[mappo_train] resumed %s at update %d',
                           self.checkpoint, self.update_count)
-        self.buffer = RolloutBuffer()
+        self.buffer = (RolloutBuffer() if self.algorithm == 'mappo' else
+                       IndependentRolloutBuffer())
         self.pending = None
         self.last_decision_time = None
         self.messages_by_stamp = {}
@@ -99,8 +105,16 @@ class MAPPOTrainerNode(object):
             rospy.Subscriber('/%s/stuck_event' % name, Point,
                              self._stuck_cb, queue_size=10)
         self._prepare_log()
-        rospy.loginfo('[mappo_train] seed=%d, rollout=%d, decision_interval=%.2fs',
-                      self.training_seed, self.rollout_length, self.decision_interval)
+        rospy.loginfo('[mappo_train] algorithm=%s seed=%d, rollout=%d, decision_interval=%.2fs',
+                      self.algorithm, self.training_seed, self.rollout_length,
+                      self.decision_interval)
+
+    def _estimate_value(self, team_obs):
+        if self.algorithm == 'ippo':
+            return self.policy.agent_values(team_obs).detach().cpu().numpy()
+        team_batch = dict(
+            (key, value[None, ...]) for key, value in team_obs.items())
+        return float(self.policy.team_value(team_batch).detach().cpu()[0])
 
     def _prepare_log(self):
         directory = os.path.dirname(self.training_log)
@@ -202,8 +216,7 @@ class MAPPOTrainerNode(object):
                 return
 
         actions, log_probs = self.policy.act(team_obs, deterministic=False)
-        team_batch = dict((key, value[None, ...]) for key, value in team_obs.items())
-        value = float(self.policy.team_value(team_batch).detach().cpu()[0])
+        value = self._estimate_value(team_obs)
         self._record_action_diagnostics(actions, adapted)
         switches = self._publish_actions(actions, adapted)
         self.pending = {
@@ -217,11 +230,10 @@ class MAPPOTrainerNode(object):
 
     def _update(self, current_obs, coverage, done):
         if done:
-            last_value = 0.0
+            last_value = (np.zeros(len(self.robot_names), dtype=np.float32)
+                          if self.algorithm == 'ippo' else 0.0)
         else:
-            team_batch = dict((key, value[None, ...])
-                              for key, value in current_obs.items())
-            last_value = float(self.policy.team_value(team_batch).detach().cpu()[0])
+            last_value = self._estimate_value(current_obs)
         rewards = list(self.buffer.rewards)
         batch = self.buffer.build_batch(last_value=last_value)
         diagnostics = self.policy.update(
@@ -230,6 +242,7 @@ class MAPPOTrainerNode(object):
         checkpoint_metadata = {
             'updates': self.update_count,
             'training_seed': self.training_seed,
+            'algorithm': self.algorithm,
             'selection_rule': 'training_endpoint_not_validation_selected',
         }
         self.policy.save(self.checkpoint, metadata=checkpoint_metadata)

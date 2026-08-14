@@ -1,4 +1,4 @@
-# Vision-MAPPO Multi-Robot Exploration in Gazebo
+# Hybrid Frontier-Level MAPPO Exploration in Gazebo
 
 This repository extends the original TurtleBot3 DDPG collision-avoidance and
 Hu-style Voronoi exploration project into a dissertation prototype for:
@@ -6,14 +6,21 @@ Hu-style Voronoi exploration project into a dissertation prototype for:
 > Vision-Guided Multi-Agent Reinforcement Learning for Swarm Robotic
 > Exploration in Unknown Environments
 
-The current system runs with ROS Noetic and Gazebo Classic. Three TurtleBot3
-Waffle Pi robots build a shared sensor-derived occupancy map. A shared MAPPO
+The current system runs with ROS Noetic and Gazebo Classic. A configurable
+team of three, five, or seven TurtleBot3 Waffle Pi robots builds a shared
+sensor-derived occupancy map. A shared MAPPO
 actor selects frontier targets from robot-local observations, while the
 reproduced DDPG controller provides low-level motion. The final hierarchy also
-contains timed spatial recovery, bounded coverage-stall fallback, and
-deterministic tail completion. The default stuck recovery keeps the reproduced
+contains timed spatial recovery and a bounded coverage-stall fallback.
+Deterministic tail completion is retained as an optional ablation rather than
+part of the default method. The default stuck recovery keeps the reproduced
 random turn. An optional clearance-guided mode is retained for controlled
 ablation, and every completed recovery publishes its measured displacement.
+
+The camera openness value is an auxiliary hand-designed input. It is not a
+learned computer-vision representation and is not treated as the main method
+contribution. The main research contribution is the high-level coordination
+and recovery architecture.
 
 ## Current architecture
 
@@ -30,7 +37,7 @@ frontier tokens + visual openness + teammate intent
 shared MAPPO frontier policy (centralized critic during training)
           |
           v
-timed recovery / bounded fallback / tail completion
+timed recovery / bounded fallback
           |
           v
 frozen DDPG low-level controller in Gazebo
@@ -102,6 +109,35 @@ source ~/catkin_ws/devel/setup.bash
 ~/ddpg_env/bin/python -m unittest discover \
   -s turtlebot_ddpg/tests -p 'test_*.py' -v
 ```
+
+## Learning and scaling comparisons
+
+The repository includes a controlled IPPO baseline. It keeps the actor,
+observations, action mask, reward, frontier interface, and DDPG controller
+unchanged, but replaces MAPPO's centralized critic with a local value function.
+This isolates the effect of centralized training more cleanly than comparing
+unrelated software stacks.
+
+```bash
+# Matched three-seed IPPO/MAPPO training and learning curves
+turtlebot_ddpg/scripts/run_learning_baselines.sh 20 120 32 2.5 3
+
+# Evaluate the trained actors with matched Gazebo seeds
+MAPPO_CHECKPOINT=/path/to/mappo.pt IPPO_CHECKPOINT=/path/to/ippo.pt \
+  turtlebot_ddpg/scripts/run_policy_baseline_evaluation.sh 5 180 17000
+
+# Fixed-horizon 3/5/7-robot Gazebo scaling study
+MAPPO_CHECKPOINT="$PWD/research_artifacts/dissertation_v1/checkpoint/mappo_selected_validation_v1.pt" \
+  turtlebot_ddpg/scripts/run_swarm_scaling_evaluation.sh 5 180 15000
+```
+
+Both plotting paths omit decorative background grids. Learning plots report
+the multi-seed mean and standard-deviation band. Scaling logs include the team
+size and a JSON snapshot of every robot pose while retaining the historical
+three-robot columns for backwards compatibility.
+
+See [`MIGRATION.md`](MIGRATION.md) before moving the project to another
+computer.
 
 The scripts discover the repository, catkin workspace, and virtual environment
 from their own locations. Custom layouts can set `TURTLEBOT_DDPG_PROJECT_ROOT`,

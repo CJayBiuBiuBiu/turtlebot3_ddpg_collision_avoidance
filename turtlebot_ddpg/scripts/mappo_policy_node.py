@@ -39,8 +39,9 @@ class MAPPOPolicyNode(object):
         self.policy = MAPPO(max_frontiers=self.spec.max_frontiers)
         self.last_decision_time = dict((name, None) for name in self.robot_names)
         if self.checkpoint:
-            self.policy.load(self.checkpoint)
-            rospy.loginfo('[mappo_policy] loaded checkpoint %s', self.checkpoint)
+            metadata = self.policy.load_actor(self.checkpoint)
+            rospy.loginfo('[mappo_policy] loaded %s actor checkpoint %s',
+                          metadata.get('algorithm', 'mappo'), self.checkpoint)
         elif not self.allow_untrained:
             raise RuntimeError(
                 'checkpoint is required unless ~allow_untrained:=true is used for a smoke test')

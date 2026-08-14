@@ -2,6 +2,9 @@
   <arg name="model" default="waffle_pi"/>
   <arg name="gui" default="true"/>
   <arg name="verbose" default="false"/>
+  <arg name="robot_count" default="3"/>
+  <arg name="robot_names" default="[robot1, robot2, robot3]"
+       doc="YAML list matching robot_count; scaling scripts set this automatically"/>
   <arg name="world_profile" default="research"
        doc="research, hu_aligned, hu_layout_b, or hu_layout_c; selects matching coordinator geometry"/>
   <arg name="world_name"
@@ -15,6 +18,18 @@
   <arg name="robot3_x" default="2.0"/>
   <arg name="robot3_y" default="2.5"/>
   <arg name="robot3_yaw" default="-1.5708"/>
+  <arg name="robot4_x" default="-4.0"/>
+  <arg name="robot4_y" default="6.5"/>
+  <arg name="robot4_yaw" default="-1.5708"/>
+  <arg name="robot5_x" default="4.0"/>
+  <arg name="robot5_y" default="6.5"/>
+  <arg name="robot5_yaw" default="-1.5708"/>
+  <arg name="robot6_x" default="-8.0"/>
+  <arg name="robot6_y" default="-5.5"/>
+  <arg name="robot6_yaw" default="1.5708"/>
+  <arg name="robot7_x" default="8.0"/>
+  <arg name="robot7_y" default="-5.5"/>
+  <arg name="robot7_yaw" default="1.5708"/>
   <arg name="coverage_done_threshold" default="97.0"/>
   <arg name="idle_done_hold" default="30.0"/>
   <arg name="shutdown_on_done" default="false"/>
@@ -45,7 +60,7 @@
   <arg name="recovery_success_distance" default="0.15"
        doc="Minimum translation counted as a successful recovery"/>
   <arg name="selection_mode" default="execution_aware"
-       doc="geometric, vision, execution_aware, adaptive_execution_aware, mappo, mappo_hybrid, or mappo_adaptive_hybrid"/>
+       doc="geometric, vision, execution_aware, adaptive_execution_aware, ippo, mappo, mappo_hybrid, or mappo_adaptive_hybrid"/>
   <arg name="vision_enabled" default="true"
        doc="Enable camera openness in assignment costs and policy tokens"/>
   <arg name="vision_scoring_mode" default="projected_obstacle"
@@ -80,6 +95,8 @@
   <arg name="gazebo_seed" default="$(arg experiment_seed)"
        doc="Physics-engine seed; defaults to the evaluation seed"/>
   <arg name="start_mappo_training" default="false"/>
+  <arg name="training_algorithm" default="mappo"
+       doc="mappo or ippo; IPPO removes the centralized critic"/>
   <arg name="training_seed" default="0"
        doc="Seed for MAPPO initialization, sampling, and minibatch order"/>
   <arg name="training_rollout_length" default="32"/>
@@ -104,6 +121,7 @@
     <arg name="verbose" value="$(arg verbose)"/>
     <arg name="world_name" value="$(arg world_name)"/>
     <arg name="gazebo_seed" value="$(arg gazebo_seed)"/>
+    <arg name="robot_count" value="$(arg robot_count)"/>
     <arg name="robot1_x" value="$(arg robot1_x)"/>
     <arg name="robot1_y" value="$(arg robot1_y)"/>
     <arg name="robot1_yaw" value="$(arg robot1_yaw)"/>
@@ -113,6 +131,18 @@
     <arg name="robot3_x" value="$(arg robot3_x)"/>
     <arg name="robot3_y" value="$(arg robot3_y)"/>
     <arg name="robot3_yaw" value="$(arg robot3_yaw)"/>
+    <arg name="robot4_x" value="$(arg robot4_x)"/>
+    <arg name="robot4_y" value="$(arg robot4_y)"/>
+    <arg name="robot4_yaw" value="$(arg robot4_yaw)"/>
+    <arg name="robot5_x" value="$(arg robot5_x)"/>
+    <arg name="robot5_y" value="$(arg robot5_y)"/>
+    <arg name="robot5_yaw" value="$(arg robot5_yaw)"/>
+    <arg name="robot6_x" value="$(arg robot6_x)"/>
+    <arg name="robot6_y" value="$(arg robot6_y)"/>
+    <arg name="robot6_yaw" value="$(arg robot6_yaw)"/>
+    <arg name="robot7_x" value="$(arg robot7_x)"/>
+    <arg name="robot7_y" value="$(arg robot7_y)"/>
+    <arg name="robot7_yaw" value="$(arg robot7_yaw)"/>
   </include>
 
   <node pkg="turtlebot_ddpg"
@@ -122,6 +152,7 @@
         required="true">
     <rosparam command="load"
               file="$(find turtlebot_ddpg)/config/gazebo_research_experiment.yaml"/>
+    <rosparam param="robot_names" subst_value="true">$(arg robot_names)</rosparam>
     <param name="selection_mode" value="$(arg selection_mode)"/>
     <param name="vision_enabled" value="$(arg vision_enabled)"/>
     <param name="vision_scoring_mode" value="$(arg vision_scoring_mode)"/>
@@ -147,6 +178,18 @@
     <param name="robot3_initial_x" value="$(arg robot3_x)"/>
     <param name="robot3_initial_y" value="$(arg robot3_y)"/>
     <param name="robot3_initial_yaw" value="$(arg robot3_yaw)"/>
+    <param name="robot4_initial_x" value="$(arg robot4_x)"/>
+    <param name="robot4_initial_y" value="$(arg robot4_y)"/>
+    <param name="robot4_initial_yaw" value="$(arg robot4_yaw)"/>
+    <param name="robot5_initial_x" value="$(arg robot5_x)"/>
+    <param name="robot5_initial_y" value="$(arg robot5_y)"/>
+    <param name="robot5_initial_yaw" value="$(arg robot5_yaw)"/>
+    <param name="robot6_initial_x" value="$(arg robot6_x)"/>
+    <param name="robot6_initial_y" value="$(arg robot6_y)"/>
+    <param name="robot6_initial_yaw" value="$(arg robot6_yaw)"/>
+    <param name="robot7_initial_x" value="$(arg robot7_x)"/>
+    <param name="robot7_initial_y" value="$(arg robot7_y)"/>
+    <param name="robot7_initial_yaw" value="$(arg robot7_yaw)"/>
     <param name="execution_path_cost_mode" value="$(arg execution_path_cost_mode)"/>
     <param name="world_profile" value="$(arg world_profile)"/>
     <param name="coverage_done_threshold" value="$(arg coverage_done_threshold)"/>
@@ -214,13 +257,59 @@
     <param name="safety_slow_range" value="$(arg safety_slow_range)"/>
     <param name="recovery_direction_mode" value="$(arg recovery_direction_mode)"/>
   </node>
+  <node if="$(eval int(arg('robot_count')) >= 4)" pkg="turtlebot_ddpg"
+        type="multi_robot_explorer_node.py"
+        name="robot4_explorer" args="robot4" output="screen" required="true">
+    <param name="experiment_seed" value="$(arg experiment_seed)"/>
+    <param name="near_collision_range" value="$(arg near_collision_range)"/>
+    <param name="near_collision_clear_range" value="$(arg near_collision_clear_range)"/>
+    <param name="safety_shield_enabled" value="$(arg safety_shield_enabled)"/>
+    <param name="safety_stop_range" value="$(arg safety_stop_range)"/>
+    <param name="safety_slow_range" value="$(arg safety_slow_range)"/>
+    <param name="recovery_direction_mode" value="$(arg recovery_direction_mode)"/>
+  </node>
+  <node if="$(eval int(arg('robot_count')) >= 5)" pkg="turtlebot_ddpg"
+        type="multi_robot_explorer_node.py"
+        name="robot5_explorer" args="robot5" output="screen" required="true">
+    <param name="experiment_seed" value="$(arg experiment_seed)"/>
+    <param name="near_collision_range" value="$(arg near_collision_range)"/>
+    <param name="near_collision_clear_range" value="$(arg near_collision_clear_range)"/>
+    <param name="safety_shield_enabled" value="$(arg safety_shield_enabled)"/>
+    <param name="safety_stop_range" value="$(arg safety_stop_range)"/>
+    <param name="safety_slow_range" value="$(arg safety_slow_range)"/>
+    <param name="recovery_direction_mode" value="$(arg recovery_direction_mode)"/>
+  </node>
+  <node if="$(eval int(arg('robot_count')) >= 6)" pkg="turtlebot_ddpg"
+        type="multi_robot_explorer_node.py"
+        name="robot6_explorer" args="robot6" output="screen" required="true">
+    <param name="experiment_seed" value="$(arg experiment_seed)"/>
+    <param name="near_collision_range" value="$(arg near_collision_range)"/>
+    <param name="near_collision_clear_range" value="$(arg near_collision_clear_range)"/>
+    <param name="safety_shield_enabled" value="$(arg safety_shield_enabled)"/>
+    <param name="safety_stop_range" value="$(arg safety_stop_range)"/>
+    <param name="safety_slow_range" value="$(arg safety_slow_range)"/>
+    <param name="recovery_direction_mode" value="$(arg recovery_direction_mode)"/>
+  </node>
+  <node if="$(eval int(arg('robot_count')) >= 7)" pkg="turtlebot_ddpg"
+        type="multi_robot_explorer_node.py"
+        name="robot7_explorer" args="robot7" output="screen" required="true">
+    <param name="experiment_seed" value="$(arg experiment_seed)"/>
+    <param name="near_collision_range" value="$(arg near_collision_range)"/>
+    <param name="near_collision_clear_range" value="$(arg near_collision_clear_range)"/>
+    <param name="safety_shield_enabled" value="$(arg safety_shield_enabled)"/>
+    <param name="safety_stop_range" value="$(arg safety_stop_range)"/>
+    <param name="safety_slow_range" value="$(arg safety_slow_range)"/>
+    <param name="recovery_direction_mode" value="$(arg recovery_direction_mode)"/>
+  </node>
 
   <node if="$(arg start_smoke_policy)"
         pkg="turtlebot_ddpg"
         type="mappo_smoke_policy.py"
         name="mappo_smoke_policy"
         output="screen"
-        required="true"/>
+        required="true">
+    <rosparam param="robot_names" subst_value="true">$(arg robot_names)</rosparam>
+  </node>
 
   <group if="$(arg start_network_policy)">
     <node unless="$(arg decentralized_actor_nodes)"
@@ -229,6 +318,7 @@
           name="mappo_policy"
           output="screen"
           required="true">
+      <rosparam param="robot_names" subst_value="true">$(arg robot_names)</rosparam>
       <param name="checkpoint" value="$(arg mappo_checkpoint)"/>
       <param name="allow_untrained" value="$(arg allow_untrained_policy)"/>
       <param name="deterministic" value="$(arg network_deterministic)"/>
@@ -277,7 +367,9 @@
         name="mappo_train"
         output="screen"
         required="true">
+    <rosparam param="robot_names" subst_value="true">$(arg robot_names)</rosparam>
     <param name="checkpoint" value="$(arg mappo_training_checkpoint)"/>
+    <param name="algorithm" value="$(arg training_algorithm)"/>
     <param name="training_log" value="$(arg mappo_training_log)"/>
     <param name="diagnostics_log" value="$(arg mappo_diagnostics_log)"/>
     <param name="rollout_length" value="$(arg training_rollout_length)"/>

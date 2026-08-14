@@ -47,17 +47,23 @@ def main():
         reward = np.asarray([float(row['mean_reward']) for row in rows])
         coverage_curves.append(coverage)
         reward_curves.append(reward)
-        axes[0].plot(steps, coverage, marker='o', color=colors(index),
-                     linewidth=1.4, label='Seed %d' % seed)
-        axes[1].plot(steps, reward, marker='o', color=colors(index),
-                     linewidth=1.4, label='Seed %d' % seed)
+        axes[0].plot(steps, coverage, color=colors(index), alpha=0.35,
+                     linewidth=1.0, label='Seed %d' % seed)
+        axes[1].plot(steps, reward, color=colors(index), alpha=0.35,
+                     linewidth=1.0, label='Seed %d' % seed)
 
     if len(set(len(curve) for curve in coverage_curves)) == 1:
         steps = np.arange(1, len(coverage_curves[0]) + 1)
-        axes[0].plot(steps, np.mean(coverage_curves, axis=0), color='#222222',
-                     linewidth=2.4, linestyle='--', label='Mean')
-        axes[1].plot(steps, np.mean(reward_curves, axis=0), color='#222222',
-                     linewidth=2.4, linestyle='--', label='Mean')
+        coverage_values = np.asarray(coverage_curves)
+        reward_values = np.asarray(reward_curves)
+        for axis, values in ((axes[0], coverage_values),
+                             (axes[1], reward_values)):
+            mean = np.mean(values, axis=0)
+            std = np.std(values, axis=0)
+            axis.plot(steps, mean, color='#222222', linewidth=2.4,
+                      label='Mean')
+            axis.fill_between(steps, mean - std, mean + std,
+                              color='#777777', alpha=0.14, linewidth=0)
 
     axes[0].set_title('(a) Coverage at each PPO update')
     axes[0].set_ylabel('Coverage (%)')
@@ -66,8 +72,8 @@ def main():
     for ax in axes:
         ax.set_xlabel('Continuation update')
         ax.set_xticks(np.arange(1, max(len(rows) for rows in runs.values()) + 1))
-        ax.grid(axis='y', color='#D9D9D9', linewidth=0.7)
-        ax.set_axisbelow(True)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         ax.legend(frameon=False, fontsize=8)
     fig.suptitle('MAPPO Continuation Training Across Three Seeds', fontsize=12)
     fig.tight_layout(rect=(0, 0, 1, 0.93))

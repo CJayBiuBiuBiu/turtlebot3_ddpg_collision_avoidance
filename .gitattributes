@@ -1,0 +1,17 @@
+* text=auto
+*.sh text eol=lf
+*.py text eol=lf
+*.launch text eol=lf
+*.xml text eol=lf
+*.xacro text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
+*.world text eol=lf
+CMakeLists.txt text eol=lf
+*.pt binary
+*.h5 binary
+*.mat binary
+*.png binary
+*.pdf binary

@@ -29,7 +29,8 @@ def bar_panel(ax, labels, means, errors, ylabel, title, colors):
     ax.set_xticklabels(labels)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    ax.grid(axis="y", alpha=0.25)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
 
 
 def plot_primary(root, output_dir):
@@ -137,7 +138,8 @@ def plot_training(root, output_dir):
     axes[0].set_ylabel("Coverage after 90 s (%)")
     axes[0].set_title("Independent policy evaluation")
     axes[0].legend(frameon=False, fontsize=7)
-    axes[0].grid(axis="y", alpha=0.25)
+    axes[0].spines["top"].set_visible(False)
+    axes[0].spines["right"].set_visible(False)
 
     aggregate_values = []
     aggregate_errors = []

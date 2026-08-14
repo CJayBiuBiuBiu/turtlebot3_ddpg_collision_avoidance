@@ -199,8 +199,8 @@ def main():
     ax.legend(frameon=False, fontsize=8)
 
     for ax in axes.flat:
-        ax.grid(axis='y', color='#D9D9D9', linewidth=0.7)
-        ax.set_axisbelow(True)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
 
     fig.suptitle('%s (%d matched seeds)' % (args.title, len(repeats)),
                  fontsize=13)

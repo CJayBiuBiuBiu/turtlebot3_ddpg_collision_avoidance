@@ -192,6 +192,9 @@ install(PROGRAMS
   scripts/project_env.sh
   scripts/run_mappo_training.sh
   scripts/run_mappo_episodes.sh
+  scripts/run_learning_baselines.sh
+  scripts/run_policy_baseline_evaluation.sh
+  scripts/run_swarm_scaling_evaluation.sh
   scripts/run_mappo_vision_seed_study.sh
   scripts/run_mappo_independent_seed_extension.sh
   scripts/run_mapping_ablation.sh
@@ -208,6 +211,8 @@ install(PROGRAMS
   scripts/plot_tail_completion_results.py
   scripts/plot_final_hu_results.py
   scripts/plot_training_seed_study.py
+  scripts/plot_learning_comparison.py
+  scripts/summarize_scaling_study.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

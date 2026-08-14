@@ -9,13 +9,29 @@ world_profile="${5:-research}"
 training_seed="${6:-0}"
 checkpoint_override="${7:-}"
 vision_enabled="${8:-true}"
+algorithm="${9:-mappo}"
+robot_count="${10:-3}"
 
 if ! [[ "${episodes}" =~ ^[1-9][0-9]*$ &&
         "${episode_seconds}" =~ ^[1-9][0-9]*$ &&
         "${rollout_length}" =~ ^[1-9][0-9]*$ &&
         "${decision_interval}" =~ ^[0-9]+([.][0-9]+)?$ &&
         "${training_seed}" =~ ^[0-9]+$ ]]; then
-  echo "Usage: $0 [episodes] [episode_seconds] [rollout_length] [decision_interval] [research|hu_aligned] [training_seed] [checkpoint] [true|false vision]" >&2
+  echo "Usage: $0 [episodes] [episode_seconds] [rollout_length] [decision_interval] [research|hu_aligned] [training_seed] [checkpoint] [true|false vision] [mappo|ippo] [3|5|7 robots]" >&2
+  exit 2
+fi
+if [[ "${algorithm}" != "mappo" && "${algorithm}" != "ippo" ]]; then
+  echo "algorithm must be mappo or ippo" >&2
+  exit 2
+fi
+case "${robot_count}" in
+  3) robot_names='[robot1, robot2, robot3]' ;;
+  5) robot_names='[robot1, robot2, robot3, robot4, robot5]' ;;
+  7) robot_names='[robot1, robot2, robot3, robot4, robot5, robot6, robot7]' ;;
+  *) echo "robot_count must be 3, 5, or 7" >&2; exit 2 ;;
+esac
+if [[ "${world_profile}" == "hu_aligned" && "${robot_count}" != "3" ]]; then
+  echo "hu_aligned training is fixed to three robots; use research for scaling" >&2
   exit 2
 fi
 if [[ "${vision_enabled}" != "true" && "${vision_enabled}" != "false" ]]; then
@@ -31,18 +47,18 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project_env.sh"
 set -u
 
 run_id="$(date +%Y%m%d_%H%M%S)"
-output_dir="${project_root}/outputs/training/${world_profile}_${run_id}"
-checkpoint="${project_root}/outputs/checkpoints/mappo_latest.pt"
+output_dir="${TRAINING_OUTPUT_DIR:-${project_root}/outputs/training/${world_profile}_${run_id}}"
+checkpoint="${project_root}/outputs/checkpoints/${algorithm}_latest.pt"
 if [[ -n "${checkpoint_override}" ]]; then
   checkpoint="${checkpoint_override}"
 fi
 if [[ "${world_profile}" == "research" ]]; then
-  training_log="${project_root}/outputs/mappo_training.csv"
-  diagnostics_log="${project_root}/outputs/mappo_diagnostics.csv"
+  training_log="${project_root}/outputs/${algorithm}_training.csv"
+  diagnostics_log="${project_root}/outputs/${algorithm}_diagnostics.csv"
   world_args=()
 else
-  training_log="${project_root}/outputs/mappo_training_hu_aligned.csv"
-  diagnostics_log="${project_root}/outputs/mappo_diagnostics_hu_aligned.csv"
+  training_log="${project_root}/outputs/${algorithm}_training_hu_aligned.csv"
+  diagnostics_log="${project_root}/outputs/${algorithm}_diagnostics_hu_aligned.csv"
   world_args=(
     world_profile:=hu_aligned
     world_name:="${project_root}/turtlebot_ddpg/worlds/hu_aligned_arena.world"
@@ -94,6 +110,8 @@ printf '%s\n' \
   "decision_interval,${decision_interval}" \
   "world_profile,${world_profile}" \
   "training_seed,${training_seed}" \
+  "algorithm,${algorithm}" \
+  "robot_count,${robot_count}" \
   "vision_enabled,${vision_enabled}" \
   "render_backend,${render_backend}" \
   "checkpoint,${checkpoint}" \
@@ -127,18 +145,21 @@ for ((episode = 1; episode <= episodes; episode++)); do
   experiment_seed=$((training_seed + episode - 1))
   metrics_path="${output_dir}/episode_${episode_id}.csv"
   launch_log="${output_dir}/episode_${episode_id}.log"
-  echo "[mappo_episodes] episode ${episode}/${episodes} (${episode_seconds}s, training seed ${training_seed}, experiment seed ${experiment_seed}, vision ${vision_enabled})"
+  echo "[learning_episodes] ${algorithm} episode ${episode}/${episodes} (${robot_count} robots, ${episode_seconds}s, training seed ${training_seed}, experiment seed ${experiment_seed}, vision ${vision_enabled})"
 
   set +e
   timeout --signal=INT --kill-after=20s "${episode_seconds}s" \
     "${render_prefix[@]}" roslaunch turtlebot_ddpg gazebo_research_experiment.launch \
       gui:=false \
       verbose:=false \
-      selection_mode:=mappo \
+      selection_mode:="${algorithm}" \
+      robot_count:="${robot_count}" \
+      robot_names:="${robot_names}" \
       vision_enabled:="${vision_enabled}" \
       start_smoke_policy:=false \
       start_network_policy:=false \
       start_mappo_training:=true \
+      training_algorithm:="${algorithm}" \
       training_rollout_length:="${rollout_length}" \
       training_decision_interval:="${decision_interval}" \
       training_seed:="${training_seed}" \
@@ -161,32 +182,33 @@ for ((episode = 1; episode <= episodes; episode++)); do
     echo "[mappo_episodes] episode ${episode} produced no metrics" >&2
     exit 1
   fi
-  if grep -Eq 'Traceback|Segmentation fault|REQUIRED process \[robot[123]_explorer|\[gazebo-[0-9]+\] process has died' "${launch_log}"; then
+  if grep -Eq 'Traceback|Segmentation fault|REQUIRED process \[robot[1-7]_explorer|\[gazebo-[0-9]+\] process has died' "${launch_log}"; then
     echo "[mappo_episodes] episode ${episode} contains a node failure" >&2
     exit 1
   fi
-  python3 - "${metrics_path}" "${vision_enabled}" <<'PY'
+  python3 - "${metrics_path}" "${vision_enabled}" "${robot_count}" <<'PY'
 import csv
 import sys
 
-path, vision_enabled = sys.argv[1:]
+path, vision_enabled, expected_robots = sys.argv[1:]
+expected_robots = int(expected_robots)
 with open(path, newline='') as stream:
     rows = list(csv.DictReader(stream))
 if not rows:
     raise SystemExit('training episode has only a CSV header')
 last = rows[-1]
-if int(last.get('scan_ready_robots', 0) or 0) != 3:
-    raise SystemExit('training episode did not receive all three laser streams')
+if int(last.get('scan_ready_robots', 0) or 0) != expected_robots:
+    raise SystemExit('training episode did not receive every laser stream')
 if vision_enabled == 'true':
-    if int(last.get('vision_ready_robots', 0) or 0) != 3:
-        raise SystemExit('training episode did not receive all three camera streams')
+    if int(last.get('vision_ready_robots', 0) or 0) != expected_robots:
+        raise SystemExit('training episode did not receive every camera stream')
     if int(last.get('vision_observation_count', 0) or 0) <= 0:
         raise SystemExit('training episode recorded no visual observations')
 PY
   grep -E '\[mappo_train\] (resumed|update=)' "${launch_log}" | tail -5 || true
 done
 
-echo "[mappo_episodes] complete"
+echo "[learning_episodes] complete"
 echo "  checkpoint: ${checkpoint}"
 echo "  training log: ${training_log}"
 echo "  diagnostics log: ${diagnostics_log}"

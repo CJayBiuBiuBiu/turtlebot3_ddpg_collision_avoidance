@@ -69,8 +69,8 @@ def main():
         ax.set_title(title, fontsize=11)
         ax.set_xticks(range(len(labels)))
         ax.set_xticklabels(labels, fontsize=8)
-        ax.grid(axis='y', color='#D9D9D9', linewidth=0.7)
-        ax.set_axisbelow(True)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         upper = max(mean + std for mean, std in zip(means, stds))
         ax.set_ylim(0, upper * 1.22 if upper > 0 else 1)
         for bar, value, error in zip(bars, means, stds):

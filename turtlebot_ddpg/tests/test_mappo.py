@@ -14,7 +14,7 @@ sys.path.insert(0, MARL_DIR)
 
 try:
     import torch
-    from mappo import MAPPO, RolloutBuffer
+    from mappo import IPPO, MAPPO, IndependentRolloutBuffer, RolloutBuffer
     from observation_adapter import ObservationSpec, adapt_observation
 except ImportError:
     torch = None
@@ -127,6 +127,35 @@ class MAPPOTests(unittest.TestCase):
             self.assertTrue(np.isfinite(value))
         self.assertIn('actor_grad_norm', diagnostics)
         self.assertIn('critic_grad_norm', diagnostics)
+
+    def test_centralized_critic_accepts_larger_robot_teams(self):
+        policy = MAPPO(max_frontiers=8)
+        for robots in (3, 5, 7):
+            obs = self.make_team_observation(robots=robots)
+            obs['teammates'] = np.random.rand(
+                robots, robots - 1, 7).astype(np.float32)
+            obs['teammate_mask'] = np.ones(
+                (robots, robots - 1), dtype=np.bool_)
+            value = policy.team_value({
+                key: item[None, ...] for key, item in obs.items()
+            })
+            self.assertEqual(tuple(value.shape), (1,))
+            self.assertTrue(torch.isfinite(value).all())
+
+    def test_ippo_synthetic_rollout_update_is_finite(self):
+        policy = IPPO(max_frontiers=8)
+        buffer = IndependentRolloutBuffer()
+        for step in range(4):
+            obs = self.make_team_observation()
+            actions, log_probs = policy.act(obs)
+            values = policy.agent_values(obs).detach().cpu().numpy()
+            buffer.add(obs, actions, log_probs, reward=0.1 * step,
+                       value=values, done=False)
+        batch = buffer.build_batch(last_value=np.zeros(3, dtype=np.float32))
+        diagnostics = policy.update(batch, epochs=1, minibatch_size=12)
+        self.assertEqual(batch['returns'].shape, (12,))
+        for value in diagnostics.values():
+            self.assertTrue(np.isfinite(value))
 
 
 if __name__ == '__main__':

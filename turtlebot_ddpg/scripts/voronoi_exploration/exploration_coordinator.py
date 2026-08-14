@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-# Voronoi-based cooperative exploration coordinator (Algorithm 1 in Hu, Niu,
-# Carrasco, Lennox, Arvin, IEEE TVT 2020) for N=3 robots in Gazebo.
+# Voronoi-based cooperative exploration coordinator inspired by Hu et al.
+# (IEEE TVT 2020), with a configurable robot team in Gazebo.
 #
 # The thesis mode keeps Gazebo ground-truth robot poses to avoid a full SLAM
 # stack, but starts the occupancy grid unknown and discovers free/occupied
 # cells from each robot's laser scan. A legacy ground-truth-radius mode is
 # retained only as an experimental baseline. The coordinator then performs
-# frontier detection + dynamic Voronoi
-# partitioning + vision-guided, utility-based frontier selection (eq. 3 plus
-# a camera-derived openness bonus -- see openness_from_image/vision_bias).
+# frontier detection, dynamic Voronoi partitioning, and utility-based frontier
+# selection. A compact camera-derived openness value is available as an
+# auxiliary feature; it is not a learned visual representation.
 # To reach the chosen frontier (Algorithm 1 line 9: move via shortest path
 # through sensed space rather than a beeline), it runs grid-based A* over
 # the same occupancy grid -- tried the paper's sparser information-node-
@@ -25,6 +25,7 @@ import heapq
 import os
 import csv
 import hashlib
+import json
 import threading
 from pathlib import Path
 
@@ -55,16 +56,15 @@ from vision_scoring import (
     VISION_SCORING_MODES)
 from wheel_odometry import integrate_wheel_positions
 
-ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
+DEFAULT_ROBOT_NAMES = ['robot1', 'robot2', 'robot3']
 PROJECT_ROOT = Path(os.environ.get(
     'TURTLEBOT_DDPG_PROJECT_ROOT', Path(__file__).resolve().parents[3]))
-ROBOT_COLORS = ['red', 'blue', 'green']
 ADAPTIVE_SELECTION_MODES = ('adaptive_execution_aware',
                             'mappo_adaptive_hybrid')
-POLICY_SELECTION_MODES = ('mappo', 'mappo_hybrid',
+POLICY_SELECTION_MODES = ('mappo', 'ippo', 'mappo_hybrid',
                           'mappo_adaptive_hybrid')
 EXECUTION_SELECTION_MODES = ('execution_aware',) + ADAPTIVE_SELECTION_MODES + \
-                            ('mappo', 'mappo_hybrid')
+                            ('mappo', 'ippo', 'mappo_hybrid')
 HYBRID_SELECTION_MODES = ('mappo_hybrid', 'mappo_adaptive_hybrid')
 COORDINATOR_SELECTION_MODES = SELECTION_MODES + \
                               ('adaptive_execution_aware',) + \
@@ -222,6 +222,7 @@ METRIC_FIELDS = [
     'near_collision_sample_ratio', 'minimum_laser_clearance_m',
     'near_collision_range_m', 'near_collision_clear_range_m',
     'path_length_total_m', 'execution_path_cost_mode',
+    'robot_count', 'robot_positions_json',
     'robot1_x', 'robot1_y', 'robot2_x', 'robot2_y',
     'robot3_x', 'robot3_y',
     'vision_enabled', 'vision_scoring_mode', 'vision_projection_mode',
@@ -370,6 +371,12 @@ class Coordinator(object):
         self.use_sim_time = bool(rospy.get_param('/use_sim_time', False))
         self.world_profile = rospy.get_param('~world_profile', 'research')
         configure_world(self.world_profile)
+        self.robot_names = list(rospy.get_param(
+            '~robot_names', DEFAULT_ROBOT_NAMES))
+        if len(self.robot_names) < 2:
+            raise ValueError('robot_names must contain at least two robots')
+        if len(set(self.robot_names)) != len(self.robot_names):
+            raise ValueError('robot_names must not contain duplicates')
         self.selection_mode = rospy.get_param('~selection_mode', 'vision')
         if self.selection_mode not in COORDINATOR_SELECTION_MODES:
             raise ValueError('selection_mode must be one of %s' %
@@ -537,7 +544,7 @@ class Coordinator(object):
                 float(rospy.get_param('~%s_initial_x' % name, 0.0)),
                 float(rospy.get_param('~%s_initial_y' % name, 0.0)),
                 float(rospy.get_param('~%s_initial_yaw' % name, 0.0))))
-            for name in ROBOT_NAMES)
+            for name in self.robot_names)
         if self.pose_source == 'wheel_odometry':
             self.positions = dict(
                 (name, pose[:2]) for name, pose in initial_poses.items())
@@ -563,8 +570,8 @@ class Coordinator(object):
         self.goal_set_time = {}   # name -> control-clock time the goal was chosen
         self.current_path = {}    # name -> list of (x, y) waypoints from A*, or None
         self.previous_positions = {}
-        self.path_length = dict((name, 0.0) for name in ROBOT_NAMES)
-        self.stuck_events = dict((name, 0) for name in ROBOT_NAMES)
+        self.path_length = dict((name, 0.0) for name in self.robot_names)
+        self.stuck_events = dict((name, 0) for name in self.robot_names)
         # `stuck_events` counts recovery activations and may include repeated
         # attempts at one corner. This second counter records only newly
         # blacklisted spatial regions, which is easier to interpret in the
@@ -573,7 +580,8 @@ class Coordinator(object):
         self.recovery_results = 0
         self.recovery_successes = 0
         self.recovery_displacement_sum = 0.0
-        self.near_collision_events = dict((name, 0) for name in ROBOT_NAMES)
+        self.near_collision_events = dict(
+            (name, 0) for name in self.robot_names)
         self.clearance_telemetry = ClearanceTelemetry(
             event_threshold=self.near_collision_range)
         self.goal_assignments = 0
@@ -583,7 +591,8 @@ class Coordinator(object):
         self.no_path_goal_occupied = 0
         self.no_path_disconnected = 0
         self.latest_policy_actions = {}
-        self.last_consumed_policy_action = dict((name, 0.0) for name in ROBOT_NAMES)
+        self.last_consumed_policy_action = dict(
+            (name, 0.0) for name in self.robot_names)
         self.policy_actions_received = 0
         self.policy_select_requests = 0
         self.policy_select_accepted = 0
@@ -612,27 +621,27 @@ class Coordinator(object):
         self._metrics_lock = threading.Lock()
         self.targets_pub = {
             name: rospy.Publisher('/%s/exploration_target' % name, Point, queue_size=1, latch=True)
-            for name in ROBOT_NAMES
+            for name in self.robot_names
         }
         self.done_pub = {
             name: rospy.Publisher('/%s/exploration_done' % name, Bool, queue_size=1, latch=True)
-            for name in ROBOT_NAMES
+            for name in self.robot_names
         }
         self.observation_pub = {
             name: rospy.Publisher('/%s/frontier_observation' % name,
                                   FrontierObservation, queue_size=1)
-            for name in ROBOT_NAMES
+            for name in self.robot_names
         }
         self.local_bev_pub = {
             name: rospy.Publisher('/%s/local_bev' % name,
                                   OccupancyGrid, queue_size=1)
-            for name in ROBOT_NAMES
+            for name in self.robot_names
         }
 
         if self.pose_source == 'gazebo_truth':
             rospy.Subscriber(
                 '/gazebo/model_states', ModelStates, self._model_states_cb)
-        for name in ROBOT_NAMES:
+        for name in self.robot_names:
             if self.pose_source == 'wheel_odometry':
                 rospy.Subscriber('/%s/joint_states' % name, JointState,
                                  self._joint_states_cb, callback_args=name)
@@ -667,7 +676,8 @@ class Coordinator(object):
         self.no_frontier_since = None
         self._open_metrics_file()
         rospy.on_shutdown(self._close_metrics_file)
-        rospy.loginfo('[coordinator] selection_mode=%s, mapping_mode=%s, pose_source=%s, world_profile=%s, clustered_frontiers=%s, metrics=%s',
+        rospy.loginfo('[coordinator] robots=%s, selection_mode=%s, mapping_mode=%s, pose_source=%s, world_profile=%s, clustered_frontiers=%s, metrics=%s',
+                      ','.join(self.robot_names),
                       self.selection_mode, self.mapping_mode, self.pose_source,
                       self.world_profile, self.cluster_frontiers,
                       self.metrics_path)
@@ -791,7 +801,7 @@ class Coordinator(object):
         self.stuck_events[name] += 1
         if self.blacklist.add(msg.x, msg.y, self._control_now()):
             self.unique_stuck_regions += 1
-        for name in ROBOT_NAMES:
+        for name in self.robot_names:
             goal = self.current_goal.get(name)
             if goal is not None and math.hypot(goal[0] - msg.x, goal[1] - msg.y) < STUCK_BLACKLIST_RADIUS:
                 self.current_goal[name] = None
@@ -815,7 +825,7 @@ class Coordinator(object):
             name, msg.data, self._control_now())
 
     def _model_states_cb(self, msg):
-        for name in ROBOT_NAMES:
+        for name in self.robot_names:
             if name in msg.name:
                 idx = msg.name.index(name)
                 p = msg.pose[idx].position
@@ -1077,7 +1087,7 @@ class Coordinator(object):
         Exact A* path costs are evaluated only when a robot needs a new goal;
         running A* for every robot/frontier pair at 4 Hz would dominate Gazebo.
         """
-        n_robots, n_frontiers = len(ROBOT_NAMES), len(frontiers)
+        n_robots, n_frontiers = len(self.robot_names), len(frontiers)
         distance = np.linalg.norm(
             robot_positions[:, None, :] - frontiers[None, :, :], axis=2)
         path_cost = np.zeros((n_robots, n_frontiers), dtype=np.float64)
@@ -1092,9 +1102,10 @@ class Coordinator(object):
         information = np.broadcast_to(
             np.asarray([self.information_gain(f) for f in frontiers])[None, :],
             (n_robots, n_frontiers)).copy()
-        active_goals = dict((name, self.current_goal.get(name)) for name in ROBOT_NAMES)
+        active_goals = dict(
+            (name, self.current_goal.get(name)) for name in self.robot_names)
 
-        for i, name in enumerate(ROBOT_NAMES):
+        for i, name in enumerate(self.robot_names):
             other_positions = np.delete(robot_positions, i, axis=0)
             yaw = self.yaws.get(name, 0.0)
             for j, frontier in enumerate(frontiers):
@@ -1150,7 +1161,7 @@ class Coordinator(object):
     def _publish_policy_observations(self, coverage, frontiers, frontier_ids, owner,
                                      execution_costs, features):
         stamp = rospy.Time.now()
-        for i, name in enumerate(ROBOT_NAMES):
+        for i, name in enumerate(self.robot_names):
             x, y = self.positions[name]
             observation = FrontierObservation()
             observation.header = Header(stamp=stamp, frame_id='map')
@@ -1189,7 +1200,7 @@ class Coordinator(object):
             observation.frontiers = tokens
             teammate_intents = []
             communication_now = self._control_now()
-            for other_name in ROBOT_NAMES:
+            for other_name in self.robot_names:
                 if other_name == name:
                     continue
                 intent = TeammateIntent()
@@ -1354,6 +1365,11 @@ class Coordinator(object):
                 '%.4f' % self.near_collision_clear_range),
             'path_length_total_m': '%.4f' % sum(self.path_length.values()),
             'execution_path_cost_mode': self.execution_path_cost_mode,
+            'robot_count': len(self.robot_names),
+            'robot_positions_json': json.dumps(dict(
+                (name, [float(value) for value in self.positions[name]])
+                for name in self.robot_names if name in self.positions),
+                sort_keys=True, separators=(',', ':')),
             'robot1_x': self.positions.get('robot1', ('', ''))[0],
             'robot1_y': self.positions.get('robot1', ('', ''))[1],
             'robot2_x': self.positions.get('robot2', ('', ''))[0],
@@ -1388,7 +1404,9 @@ class Coordinator(object):
                 if self.vision_observation_count else ''),
             'scan_ready_robots': len(self.scan_ready),
             'mapped_obstacle_cells': int(np.sum(self.grid == 2)),
-            'idle_robots': sum(self.current_goal.get(name) is None for name in ROBOT_NAMES),
+            'idle_robots': sum(
+                self.current_goal.get(name) is None
+                for name in self.robot_names),
             'policy_actions_received': self.policy_actions_received,
             'policy_select_requests': self.policy_select_requests,
             'policy_select_accepted': self.policy_select_accepted,
@@ -1451,7 +1469,7 @@ class Coordinator(object):
         self._last_status_write = now
         try:
             rows = []
-            for name in ROBOT_NAMES:
+            for name in self.robot_names:
                 pos = self.positions.get(name)
                 goal = self.current_goal.get(name)
                 pos_s = "(%.2f, %.2f)" % pos if pos else "--"
@@ -1511,7 +1529,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
     def spin(self):
         rate = rospy.Rate(UPDATE_HZ)
         while not rospy.is_shutdown():
-            if len(self.positions) < len(ROBOT_NAMES):
+            if len(self.positions) < len(self.robot_names):
                 rospy.loginfo_throttle(2.0, "waiting for all robot poses... have %s",
                                         list(self.positions.keys()))
                 rate = self._safe_sleep(rate)
@@ -1521,22 +1539,24 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                     self.selection_mode in (('vision',) +
                                             EXECUTION_SELECTION_MODES) and
                     time.time() - self.start_time > 10.0 and
-                    len(self.vision_scores) < len(ROBOT_NAMES)):
-                missing = [name for name in ROBOT_NAMES if name not in self.vision_scores]
+                    len(self.vision_scores) < len(self.robot_names)):
+                missing = [name for name in self.robot_names
+                           if name not in self.vision_scores]
                 rospy.logerr_throttle(
                     10.0, '[coordinator] camera input missing for %s; vision term is zero',
                     ', '.join(missing))
 
             if (self.mapping_mode == 'laser_scan' and
                     time.time() - self.start_time > 10.0 and
-                    len(self.scan_ready) < len(ROBOT_NAMES)):
-                missing = [name for name in ROBOT_NAMES if name not in self.scan_ready]
+                    len(self.scan_ready) < len(self.robot_names)):
+                missing = [name for name in self.robot_names
+                           if name not in self.scan_ready]
                 rospy.logerr_throttle(
                     10.0, '[coordinator] laser mapping input missing for %s',
                     ', '.join(missing))
 
             if self.mapping_mode == 'ground_truth_radius':
-                for name in ROBOT_NAMES:
+                for name in self.robot_names:
                     x, y = self.positions[name]
                     self.mark_explored(x, y, SENSING_RANGE)
 
@@ -1553,7 +1573,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                     # A bounded recovery window must be able to replace stale
                     # goals; otherwise fallback has no effect until the low-level
                     # controller independently reports a failure.
-                    for name in ROBOT_NAMES:
+                    for name in self.robot_names:
                         self.current_goal[name] = None
                         self.current_goal_id[name] = None
                         self.current_path[name] = None
@@ -1566,7 +1586,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                 rospy.logwarn(
                     '[coordinator] coverage reached %.2f%%; switching to '
                     'deterministic execution-aware tail completion', coverage)
-                for name in ROBOT_NAMES:
+                for name in self.robot_names:
                     self.current_goal[name] = None
                     self.current_goal_id[name] = None
                     self.current_path[name] = None
@@ -1585,7 +1605,9 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
             else:
                 self.no_frontier_since = None
 
-            all_idle = all(self.current_goal.get(name) is None for name in ROBOT_NAMES)
+            all_idle = all(
+                self.current_goal.get(name) is None
+                for name in self.robot_names)
             if all_idle:
                 if self.all_idle_since is None:
                     self.all_idle_since = self._control_now()
@@ -1596,7 +1618,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                 control_now = self._control_now()
                 sensing_ready = (
                     self.mapping_mode != 'laser_scan' or
-                    len(self.scan_ready) == len(ROBOT_NAMES))
+                    len(self.scan_ready) == len(self.robot_names))
                 strictly_done = (
                     sensing_ready and
                     (control_now - self.start_control_time) >= STARTUP_GRACE_PERIOD and
@@ -1625,7 +1647,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                              self.idle_done_hold, len(all_frontiers)))
                     rospy.loginfo("Exploration complete: %s. Signalling all robots to stop.", reason)
                     self.exploration_done_logged = True
-                    for name in ROBOT_NAMES:
+                    for name in self.robot_names:
                         self.done_pub[name].publish(Bool(data=True))
 
             control_elapsed = self._control_now() - self.start_control_time
@@ -1638,7 +1660,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                     'Evaluation horizon reached at %.2f simulation seconds; '
                     'stopping without marking the coverage objective complete.',
                     control_elapsed)
-                for name in ROBOT_NAMES:
+                for name in self.robot_names:
                     self.done_pub[name].publish(Bool(data=True))
 
             if self.exploration_done_logged or self.evaluation_horizon_reached:
@@ -1669,7 +1691,8 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                 continue
             frontier_ids = self.track_frontiers(frontiers)
 
-            robot_positions = np.array([self.positions[n] for n in ROBOT_NAMES])
+            robot_positions = np.array(
+                [self.positions[name] for name in self.robot_names])
             execution_costs, ownership_costs, execution_features = self._execution_costs(
                 frontiers, robot_positions)
             if self.selection_mode in EXECUTION_SELECTION_MODES:
@@ -1690,12 +1713,13 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                 owner = assign_by_cost(effective_ownership_costs)
             else:
                 self.adaptive_execution_weight = 0.0
-                owner = self.voronoi_owner(frontiers, ROBOT_NAMES, robot_positions)
+                owner = self.voronoi_owner(
+                    frontiers, self.robot_names, robot_positions)
             self._publish_policy_observations(
                 coverage, frontiers, frontier_ids, owner,
                 execution_costs, execution_features)
 
-            for i, name in enumerate(ROBOT_NAMES):
+            for i, name in enumerate(self.robot_names):
                 pos = np.array(self.positions[name])
                 goal = self.current_goal.get(name)
 

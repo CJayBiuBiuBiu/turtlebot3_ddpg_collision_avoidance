@@ -114,8 +114,8 @@ def main():
     ax.set_ylim(0, max(mean + std for mean, std in zip(means, stds)) * 1.2)
 
     for ax in axes.flat:
-        ax.grid(axis='y', color='#D9D9D9', linewidth=0.7)
-        ax.set_axisbelow(True)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
 
     fig.suptitle('Hu-Aligned Gazebo Multi-Robot Exploration (5 runs per method)',
                  fontsize=13)

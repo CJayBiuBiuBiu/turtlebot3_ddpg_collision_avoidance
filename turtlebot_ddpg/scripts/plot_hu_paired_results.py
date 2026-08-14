@@ -179,8 +179,8 @@ def main():
     ax.set_xticklabels([labels[method] for method in methods], fontsize=8)
 
     for ax in axes.flat:
-        ax.grid(axis='y', color='#D9D9D9', linewidth=0.7)
-        ax.set_axisbelow(True)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
 
     fig.suptitle('Hu-Aligned Gazebo Evaluation (%d seed-matched runs)' %
                  len(repeats), fontsize=13)
