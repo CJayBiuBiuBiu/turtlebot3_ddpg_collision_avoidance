@@ -133,6 +133,11 @@ turtlebot_ddpg/scripts/run_policy_baseline_study.sh \
 # Fixed-horizon 3/5/7-robot Gazebo scaling study
 MAPPO_CHECKPOINT="$PWD/research_artifacts/dissertation_v1/checkpoint/mappo_selected_validation_v1.pt" \
   turtlebot_ddpg/scripts/run_swarm_scaling_evaluation.sh 5 180 15000
+
+# Resume only the third seven-robot repeat in an existing OUTPUT_DIR
+TEAM_SIZES="7" REPEAT_START=3 OUTPUT_DIR=/path/to/scaling_results \
+  MAPPO_CHECKPOINT=/path/to/mappo.pt \
+  turtlebot_ddpg/scripts/run_swarm_scaling_evaluation.sh 3 180 15000
 ```
 
 Both plotting paths omit decorative background grids. Learning plots report

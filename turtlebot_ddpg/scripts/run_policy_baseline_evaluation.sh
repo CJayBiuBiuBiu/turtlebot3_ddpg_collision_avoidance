@@ -69,6 +69,7 @@ for ((repeat = 1; repeat <= repeats; repeat++)); do
     stem="repeat_$(printf '%02d' "${repeat}")_${algorithm}"
     metrics_path="${output_dir}/${stem}.csv"
     launch_log="${output_dir}/${stem}.log"
+    rm -f -- "${metrics_path}" "${launch_log}"
     echo "[policy_baseline] ${algorithm}, repeat ${repeat}/${repeats}, seed ${seed}"
     set +e
     timeout --signal=INT --kill-after=20s "$((episode_seconds * 3 + 60))s" \

@@ -5,7 +5,13 @@ set -eo pipefail
 repeats="${1:-5}"
 episode_seconds="${2:-180}"
 seed_base="${3:-15000}"
-team_sizes=(3 5 7)
+read -r -a team_sizes <<< "${TEAM_SIZES:-3 5 7}"
+repeat_start="${REPEAT_START:-1}"
+
+if ((repeat_start < 1 || repeat_start > repeats)); then
+  echo "REPEAT_START must be between 1 and repeats (${repeats})" >&2
+  exit 2
+fi
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/project_env.sh"
 set -u
@@ -50,11 +56,12 @@ for robot_count in "${team_sizes[@]}"; do
     5) robot_names='[robot1, robot2, robot3, robot4, robot5]' ;;
     7) robot_names='[robot1, robot2, robot3, robot4, robot5, robot6, robot7]' ;;
   esac
-  for ((repeat = 1; repeat <= repeats; repeat++)); do
+  for ((repeat = repeat_start; repeat <= repeats; repeat++)); do
     seed=$((seed_base + robot_count * 100 + repeat))
     stem="robots_${robot_count}_repeat_$(printf '%02d' "${repeat}")"
     metrics_path="${output_dir}/${stem}.csv"
     launch_log="${output_dir}/${stem}.log"
+    rm -f -- "${metrics_path}" "${launch_log}"
     echo "[scaling] ${robot_count} robots, repeat ${repeat}/${repeats}, seed ${seed}"
     set +e
     timeout --signal=INT --kill-after=20s "$((episode_seconds * 3 + 60))s" \
@@ -80,11 +87,12 @@ for robot_count in "${team_sizes[@]}"; do
       echo "No metrics produced for ${stem}" >&2
       exit 1
     fi
-    python3 - "${metrics_path}" "${robot_count}" <<'PY'
+    python3 - "${metrics_path}" "${robot_count}" "${episode_seconds}" <<'PY'
 import csv
 import sys
 
 path, expected = sys.argv[1], int(sys.argv[2])
+expected_horizon = float(sys.argv[3])
 with open(path, newline='') as stream:
     rows = list(csv.DictReader(stream))
 if not rows:
@@ -96,6 +104,12 @@ if int(last.get('scan_ready_robots', 0) or 0) != expected:
     raise SystemExit('not all robot laser streams became ready')
 if int(last.get('vision_ready_robots', 0) or 0) != expected:
     raise SystemExit('not all robot camera streams became ready')
+elapsed = float(last.get('elapsed_sim_s') or last.get('elapsed_s') or 0.0)
+tolerance = max(1.0, 0.02 * expected_horizon)
+if elapsed + tolerance < expected_horizon:
+    raise SystemExit(
+        'run ended before the fixed horizon: {:.3f} < {:.3f}'.format(
+            elapsed, expected_horizon))
 PY
   done
 done
