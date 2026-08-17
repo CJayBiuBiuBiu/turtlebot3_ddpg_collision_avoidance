@@ -17,6 +17,7 @@ fi
 run_id="$(date +%Y%m%d_%H%M%S)"
 output_dir="${OUTPUT_DIR:-${project_root}/outputs/evaluation/scaling_${run_id}}"
 mkdir -p "${output_dir}"
+output_dir="$(readlink -f "${output_dir}")"
 
 render_prefix=()
 if ! timeout 2s xdpyinfo >/dev/null 2>&1; then

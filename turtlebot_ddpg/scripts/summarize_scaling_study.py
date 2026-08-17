@@ -40,7 +40,8 @@ def read_runs(root):
 
 def mean_std(runs, key):
     values = np.asarray([run[key] for run in runs], dtype=np.float64)
-    return float(values.mean()), float(values.std())
+    std = values.std(ddof=1) if len(values) > 1 else 0.0
+    return float(values.mean()), float(std)
 
 
 def main():

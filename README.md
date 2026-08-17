@@ -126,6 +126,10 @@ turtlebot_ddpg/scripts/run_learning_baselines.sh 20 120 32 2.5 3
 MAPPO_CHECKPOINT=/path/to/mappo.pt IPPO_CHECKPOINT=/path/to/ippo.pt \
   turtlebot_ddpg/scripts/run_policy_baseline_evaluation.sh 5 180 17000
 
+# Evaluate all three matched training lineages on common Gazebo seeds
+turtlebot_ddpg/scripts/run_policy_baseline_study.sh \
+  outputs/training/learning_baselines_TIMESTAMP 3 120 17000
+
 # Fixed-horizon 3/5/7-robot Gazebo scaling study
 MAPPO_CHECKPOINT="$PWD/research_artifacts/dissertation_v1/checkpoint/mappo_selected_validation_v1.pt" \
   turtlebot_ddpg/scripts/run_swarm_scaling_evaluation.sh 5 180 15000

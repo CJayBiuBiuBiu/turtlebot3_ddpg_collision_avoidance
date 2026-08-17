@@ -38,11 +38,11 @@ class ScalingSummaryTests(unittest.TestCase):
             self.assertEqual(grouped[5][0]['coverage'], 60.0)
             self.assertEqual(grouped[5][0]['path_per_robot'], 10.0)
 
-    def test_mean_std_returns_population_statistics(self):
+    def test_mean_std_returns_sample_statistics(self):
         mean, std = mean_std([
             {'coverage': 80.0}, {'coverage': 100.0}], 'coverage')
         self.assertEqual(mean, 90.0)
-        self.assertEqual(std, 10.0)
+        self.assertAlmostEqual(std, 14.1421356237)
 
 
 if __name__ == '__main__':
