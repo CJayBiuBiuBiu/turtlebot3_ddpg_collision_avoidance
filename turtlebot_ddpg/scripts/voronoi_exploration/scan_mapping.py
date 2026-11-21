@@ -71,16 +71,22 @@ def clear_robot_footprints(grid, robot_positions, arena, resolution,
 
 def update_grid_from_scan(grid, robot_xy, robot_yaw, ranges, angle_min,
                           angle_increment, range_min, range_max, arena,
-                          resolution, ray_stride=1, inflation_cells=1):
+                          resolution, ray_stride=1, inflation_cells=1,
+                          observed_free=None):
     """Update ``grid`` in place and return the number of processed rays.
 
     Ground-truth pose may be supplied by Gazebo, but obstacle knowledge comes
     only from the scan. Finite returns shorter than ``range_max`` mark an
     occupied endpoint. Infinite or maximum-range returns only clear free
     space. Existing occupied cells are never cleared by later rays.
+    If supplied, `observed_free` records the unique cells cleared by accepted
+    rays. Pose-cell and footprint overrides do not write to this mask.
     """
     if grid.ndim != 2:
         raise ValueError('grid must be two-dimensional')
+    if observed_free is not None and (
+            observed_free.shape != grid.shape or observed_free.dtype != np.bool_):
+        raise ValueError('observed_free must be a boolean mask with the grid shape')
     if resolution <= 0.0 or range_max <= 0.0:
         raise ValueError('resolution and range_max must be positive')
     stride = max(1, int(ray_stride))
@@ -117,6 +123,8 @@ def update_grid_from_scan(grid, robot_xy, robot_yaw, ranges, angle_min,
         for ix, iy in free_cells:
             if grid[iy, ix] != OCCUPIED:
                 grid[iy, ix] = FREE
+                if observed_free is not None:
+                    observed_free[iy, ix] = True
         if hit:
             _mark_occupied(grid, cells[-1], inflation_cells)
         processed += 1

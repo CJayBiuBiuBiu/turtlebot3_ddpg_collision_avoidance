@@ -37,6 +37,12 @@
        doc="Stop at the first coverage threshold crossing for timed evaluations"/>
   <arg name="max_simulation_seconds" default="0"
        doc="Stop at this Gazebo /clock horizon; zero disables the limit"/>
+  <arg name="fixed_horizon_only" default="false"
+       doc="Disable early completion for a matched fixed-budget comparison"/>
+  <arg name="control_progress_mode" default="reference_coverage"
+       doc="reference_coverage (legacy) or observed_free_area (fixed-horizon audit)"/>
+  <arg name="observed_area_progress_epsilon_m2" default="0.5"
+       doc="Minimum newly observed free area that resets the stall timer"/>
   <arg name="hybrid_fallback_stall_seconds" default="60.0"/>
   <arg name="hybrid_fallback_active_seconds" default="30.0"/>
   <arg name="hybrid_fallback_progress_epsilon" default="0.2"/>
@@ -197,6 +203,11 @@
     <param name="shutdown_on_done" value="$(arg shutdown_on_done)"/>
     <param name="complete_on_coverage" value="$(arg complete_on_coverage)"/>
     <param name="max_simulation_seconds" value="$(arg max_simulation_seconds)"/>
+    <param name="fixed_horizon_only" value="$(arg fixed_horizon_only)"/>
+    <param name="control_progress_mode" value="$(arg control_progress_mode)"/>
+    <param name="observed_area_progress_epsilon_m2"
+           value="$(arg observed_area_progress_epsilon_m2)"/>
+    <param name="starts_policy_training" value="$(arg start_mappo_training)"/>
     <param name="hybrid_fallback_stall_seconds"
            value="$(arg hybrid_fallback_stall_seconds)"/>
     <param name="hybrid_fallback_active_seconds"
