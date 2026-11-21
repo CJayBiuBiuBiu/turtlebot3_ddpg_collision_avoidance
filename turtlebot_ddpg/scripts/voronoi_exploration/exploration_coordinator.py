@@ -45,6 +45,7 @@ from scipy.spatial import Voronoi
 from frontier_scoring import (
     SELECTION_MODES, assign_by_cost, blend_phase_costs, line_risk_path_cost,
     normalize_rows, score_frontier_roles, vision_role_flags)
+from frontier_decision_trace import FrontierDecisionTrace
 from hybrid_fallback import (
     CoverageStallFallback, OBSERVED_FREE_AREA, REFERENCE_COVERAGE,
     validate_progress_mode)
@@ -511,6 +512,13 @@ class Coordinator(object):
                 'near_collision_clear_range must exceed near_collision_range')
         default_metrics = str(PROJECT_ROOT / 'outputs' / 'gazebo_metrics.csv')
         self.metrics_path = os.path.expanduser(rospy.get_param('~metrics_path', default_metrics))
+        self.frontier_trace = None
+        trace_path = os.path.expanduser(rospy.get_param('~frontier_trace_path', ''))
+        if trace_path and (
+                not self.use_sim_time or self.control_progress_mode != OBSERVED_FREE_AREA):
+            raise ValueError('frontier_trace_path requires observed_free_area and simulation time')
+        if trace_path and Path(trace_path).resolve() == Path(self.metrics_path).resolve():
+            raise ValueError('frontier_trace_path must differ from metrics_path')
         self.status_html_path = os.path.expanduser(rospy.get_param(
             '~status_html_path', str(PROJECT_ROOT / 'outputs' /
                                      'exploration_status.html')))
@@ -711,6 +719,14 @@ class Coordinator(object):
         self.no_frontier_since = None
         self._open_metrics_file()
         rospy.on_shutdown(self._close_metrics_file)
+        if trace_path:
+            self.frontier_trace = FrontierDecisionTrace(
+                trace_path, experiment_seed=self.experiment_seed,
+                world_profile=self.world_profile, selection_mode=self.selection_mode,
+                vision_scoring_mode=self.vision_scoring_mode, vision_role=self.vision_role,
+                actor_uses_vision=self.actor_uses_vision, rules_use_vision=self.rules_use_vision,
+                horizon_s=self.max_simulation_seconds)
+            rospy.on_shutdown(self._close_frontier_trace)
         rospy.loginfo('[coordinator] robots=%s, selection_mode=%s, mapping_mode=%s, pose_source=%s, world_profile=%s, clustered_frontiers=%s, metrics=%s',
                       ','.join(self.robot_names),
                       self.selection_mode, self.mapping_mode, self.pose_source,
@@ -844,6 +860,7 @@ class Coordinator(object):
         for name in self.robot_names:
             goal = self.current_goal.get(name)
             if goal is not None and math.hypot(goal[0] - msg.x, goal[1] - msg.y) < STUCK_BLACKLIST_RADIUS:
+                self._finish_frontier_attempt(name, 'stuck')
                 self.current_goal[name] = None
                 self.current_goal_id[name] = None
                 self.current_path[name] = None
@@ -1300,6 +1317,23 @@ class Coordinator(object):
             self._metrics_writer.writeheader()
             self._metrics_file.flush()
 
+    def _frontier_trace_snapshot(self):
+        with self._observed_progress_lock:
+            area = np.count_nonzero(self.observed_free) * GRID_RES ** 2
+        return max(0.0, self._control_now() - self.start_control_time), float(area)
+
+    def _finish_frontier_attempt(self, name, outcome):
+        if self.frontier_trace is not None:
+            elapsed, area = self._frontier_trace_snapshot()
+            self.frontier_trace.finish(name, outcome, elapsed, area)
+
+    def _close_frontier_trace(self):
+        if self.frontier_trace is not None:
+            elapsed, area = self._frontier_trace_snapshot()
+            outcome = ('simulation_horizon' if self.evaluation_horizon_reached
+                       else 'run_shutdown')
+            self.frontier_trace.close(outcome, elapsed, area)
+
     def _close_metrics_file(self):
         with self._metrics_lock:
             if self._metrics_file is not None:
@@ -1645,6 +1679,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                     # goals; otherwise fallback has no effect until the low-level
                     # controller independently reports a failure.
                     for name in self.robot_names:
+                        self._finish_frontier_attempt(name, 'stall_fallback_reset')
                         self.current_goal[name] = None
                         self.current_goal_id[name] = None
                         self.current_path[name] = None
@@ -1739,6 +1774,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                 self._write_metrics(
                     coverage, all_frontiers, np.empty((0, 2)), force=True,
                     observed_free_area=observed_free_area)
+                self._close_frontier_trace()
                 if self.shutdown_on_done:
                     shutdown_reason = (
                         'exploration mission complete'
@@ -1761,6 +1797,12 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
             self._write_metrics(coverage, all_frontiers, frontiers,
                                 observed_free_area=observed_free_area)
             if len(frontiers) == 0:
+                if self.frontier_trace is not None:
+                    for name in self.robot_names:
+                        goal = self.current_goal.get(name)
+                        if (goal is not None and
+                                np.linalg.norm(np.subtract(self.positions[name], goal)) < ARRIVE_THRESH):
+                            self._finish_frontier_attempt(name, 'reached')
                 rate = self._safe_sleep(rate)
                 continue
             frontier_ids = self.track_frontiers(frontiers)
@@ -1801,6 +1843,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                 reached = goal is not None and np.linalg.norm(pos - np.array(goal)) < ARRIVE_THRESH
                 if reached:
                     self.goals_reached += 1
+                    self._finish_frontier_attempt(name, 'reached')
 
                 held_long_enough = (
                     self._control_now() - self.goal_set_time.get(name, 0.0)
@@ -1847,6 +1890,9 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
 
                 invalid_goal = reached or not still_owned or blocked
                 if invalid_goal:
+                    if not reached:
+                        self._finish_frontier_attempt(
+                            name, 'blocked' if blocked else 'ownership_changed')
                     if not still_owned:
                         self.goals_dropped_owner += 1
                     if blocked:
@@ -1866,6 +1912,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                     if action_kind == 'wait':
                         if goal is not None:
                             self.goals_cleared_wait += 1
+                            self._finish_frontier_attempt(name, 'wait')
                         goal = None
                         self.current_goal[name] = None
                         self.current_goal_id[name] = None
@@ -1958,6 +2005,16 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                         self.current_goal_id[name] = frontier_ids[best_index]
                         self.goal_set_time[name] = self._control_now()
                         self.goal_assignments += 1
+                        if self.frontier_trace is not None:
+                            elapsed, area = self._frontier_trace_snapshot()
+                            self.frontier_trace.assign(
+                                name, elapsed, area,
+                                selection_source=('actor' if policy_controls_selection else
+                                                  'stall_fallback' if fallback_active else 'rule'),
+                                selected_frontier_id=int(frontier_ids[best_index]),
+                                selected_xy=best.tolist(),
+                                candidate_frontier_ids=[int(fid) for fid in frontier_ids],
+                                candidate_owners=[self.robot_names[int(index)] for index in owner])
                         if (self.selection_mode in HYBRID_SELECTION_MODES and
                                 fallback_active):
                             self.hybrid_fallback_goal_assignments += 1

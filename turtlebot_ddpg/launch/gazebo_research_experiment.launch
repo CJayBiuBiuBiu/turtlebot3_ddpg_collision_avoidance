@@ -123,6 +123,9 @@
   <arg name="metrics_path"
        default="$(find turtlebot_ddpg)/../outputs/gazebo_$(arg selection_mode).csv"/>
 
+  <arg name="frontier_trace_path" default=""
+       doc="Optional JSONL output for per-goal decisions in observed_free_area mode"/>
+
   <include file="$(find turtlebot_ddpg)/launch/voronoi_multi_robot.launch">
     <arg name="model" value="$(arg model)"/>
     <arg name="gui" value="$(arg gui)"/>
@@ -233,6 +236,7 @@
            value="$(arg near_collision_clear_range)"/>
     <param name="experiment_seed" value="$(arg experiment_seed)"/>
     <param name="metrics_path" value="$(arg metrics_path)"/>
+    <param name="frontier_trace_path" value="$(arg frontier_trace_path)"/>
   </node>
 
   <node pkg="turtlebot_ddpg"

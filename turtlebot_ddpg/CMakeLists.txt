@@ -220,6 +220,7 @@ install(PROGRAMS
 
 install(FILES
   scripts/voronoi_exploration/frontier_scoring.py
+  scripts/voronoi_exploration/frontier_decision_trace.py
   scripts/voronoi_exploration/communication_model.py
   scripts/voronoi_exploration/hybrid_fallback.py
   scripts/voronoi_exploration/recovery_memory.py

@@ -53,3 +53,16 @@ logging and the Gazebo comparison follow separately.
 
 GitHub checkpoint: keep S2 separate from S1. Suggested commit title:
 `Separate actor and rule-based frontier vision`.
+
+## S3. Trace frontier decisions — 2026-11-21
+
+Pass a new `frontier_trace_path` in observed-area simulation runs to record
+the selected frontier, the contemporaneous candidates and their owners,
+whether the actor or a rule assigned it, and the terminal outcome. Join
+assignments and outcomes by `attempt_id`. Open attempts at the horizon or
+shutdown are censored, rather than counted as failures. The listed candidates
+describe the coordinator's state at assignment time; an actor message may
+come from an earlier observation. The area gain is a team-wide change
+over each attempt and must not be summed across overlapping attempts.
+
+GitHub checkpoint title: `S3: Record frontier assignments and outcomes`.
