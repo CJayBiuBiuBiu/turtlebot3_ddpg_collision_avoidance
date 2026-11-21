@@ -32,3 +32,24 @@ Calculate 90% and 97% threshold times from the evaluation CSV.
 GitHub checkpoint: review and publish the S1 changes as a separate commit
 after reviewing the pre-existing changes in the working tree. Suggested
 commit title: `Separate observed exploration progress from reference coverage`.
+
+## S2. Separate vision roles — 2026-11-21
+
+Status: score routing and focused local tests complete. Decision-event
+logging and the Gazebo comparison follow separately.
+
+- Use `vision_role:=off|actor_only|rules_only|both` with the same fixed policy
+  and environment. The default `both` reproduces the previous scores.
+- The rules channel affects ownership and analytic fallback. In
+  `rules_only`, both the explicit vision feature and the vision contribution
+  to the actor's analytic-cost feature are disabled. The actor can still
+  receive a different candidate mask because the rules can change ownership.
+  In `actor_only`, vision leaves rule costs and ownership unchanged at the
+  same decision state.
+- These are interventions on a frozen controller. Changes in performance
+  include the effect of changing the input distribution for that controller.
+- Local verification: 37 focused tests pass, including numeric equivalence
+  to the legacy routing and tests for cross-channel leakage.
+
+GitHub checkpoint: keep S2 separate from S1. Suggested commit title:
+`Separate actor and rule-based frontier vision`.

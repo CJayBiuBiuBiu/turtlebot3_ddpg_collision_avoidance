@@ -43,8 +43,8 @@ from turtlebot_ddpg.msg import (
 from scipy.spatial import Voronoi
 
 from frontier_scoring import (
-    assign_by_cost, blend_phase_costs, combine_assignment_cost_terms,
-    combine_cost_terms, line_risk_path_cost, normalize_rows, SELECTION_MODES)
+    SELECTION_MODES, assign_by_cost, blend_phase_costs, line_risk_path_cost,
+    normalize_rows, score_frontier_roles, vision_role_flags)
 from hybrid_fallback import (
     CoverageStallFallback, OBSERVED_FREE_AREA, REFERENCE_COVERAGE,
     validate_progress_mode)
@@ -384,7 +384,10 @@ class Coordinator(object):
         if self.selection_mode not in COORDINATOR_SELECTION_MODES:
             raise ValueError('selection_mode must be one of %s' %
                              (COORDINATOR_SELECTION_MODES,))
-        self.vision_enabled = bool(rospy.get_param('~vision_enabled', True))
+        self.vision_role = rospy.get_param('~vision_role', 'both')
+        self.actor_uses_vision, self.rules_use_vision = vision_role_flags(
+            self.vision_role, bool(rospy.get_param('~vision_enabled', True)))
+        self.vision_enabled = self.actor_uses_vision or self.rules_use_vision
         self.vision_scoring_mode = rospy.get_param(
             '~vision_scoring_mode', 'projected_obstacle')
         if self.vision_scoring_mode not in VISION_SCORING_MODES:
@@ -477,13 +480,16 @@ class Coordinator(object):
             '~tail_completion_enabled', False))
         self.tail_completion_coverage = float(rospy.get_param(
             '~tail_completion_coverage', 90.0))
+        starts_training = bool(rospy.get_param('~starts_policy_training', False))
+        if self.vision_role != 'both' and starts_training:
+            raise ValueError('vision_role ablations require frozen-policy evaluation')
         validate_progress_mode(
             self.control_progress_mode, self.mapping_mode,
             self.max_simulation_seconds,
             uses_coverage_phase=(
                 self.complete_on_coverage or self.tail_completion_enabled or
                 self.selection_mode in ADAPTIVE_SELECTION_MODES),
-            starts_training=bool(rospy.get_param('~starts_policy_training', False)))
+            starts_training=starts_training)
         self.stuck_blacklist_ttl = float(rospy.get_param(
             '~stuck_blacklist_ttl', 90.0))
         self.recovery_direction_mode = rospy.get_param(
@@ -1171,15 +1177,11 @@ class Coordinator(object):
         self.vision_token_nonzero_count += int(np.count_nonzero(vision > 1e-6))
         self.vision_token_openness_sum += float(np.sum(vision))
 
-        costs = combine_cost_terms(
-            'execution_aware', distance=distance, path=path_cost,
-            obstacle=obstacle, collision=collision, overlap=overlap,
-            communication=communication, information=information, vision=vision)
-        ownership_costs = combine_assignment_cost_terms(
+        costs, ownership_costs, actor_costs, actor_vision = score_frontier_roles(
+            'execution_aware', vision, self.actor_uses_vision, self.rules_use_vision,
             distance=distance, path=path_cost, obstacle=obstacle,
             collision=collision, overlap=overlap,
-            communication=communication, information=information,
-            vision=vision)
+            communication=communication, information=information)
         features = {
             'distance': distance,
             'path': path_cost,
@@ -1188,12 +1190,13 @@ class Coordinator(object):
             'overlap': overlap,
             'communication': communication,
             'information': information,
-            'vision': vision,
+            'vision': actor_vision,
+            'actor_cost': actor_costs,
         }
         return costs, ownership_costs, features
 
     def _publish_policy_observations(self, coverage, frontiers, frontier_ids, owner,
-                                     execution_costs, features):
+                                     features):
         stamp = rospy.Time.now()
         for i, name in enumerate(self.robot_names):
             x, y = self.positions[name]
@@ -1213,7 +1216,7 @@ class Coordinator(object):
                 token = FrontierToken()
                 token.id = frontier_ids[j]
                 token.position = Point(x=float(frontier[0]), y=float(frontier[1]), z=0.0)
-                token.analytic_cost = float(execution_costs[i, j])
+                token.analytic_cost = float(features['actor_cost'][i, j])
                 token.distance = float(features['distance'][i, j])
                 token.path_cost = float(features['path'][i, j])
                 token.obstacle_risk = float(features['obstacle'][i, j])
@@ -1226,7 +1229,7 @@ class Coordinator(object):
                 # Keep the initial action mask finite and permissive. Exact A*
                 # reachability is checked after SELECT, avoiding the previous
                 # prototype failure where every frontier became masked by inf.
-                token.reachable = bool(np.isfinite(execution_costs[i, j]))
+                token.reachable = bool(np.isfinite(features['actor_cost'][i, j]))
                 token.selectable = bool(
                     token.assigned and token.reachable and
                     (active_goal_id is None or token.id == active_goal_id))
@@ -1285,6 +1288,8 @@ class Coordinator(object):
         fields = METRIC_FIELDS
         if self.observed_free is not None:
             fields = fields + ['control_progress_mode', 'observed_free_area_m2']
+        if self.observed_free is not None or self.vision_role != 'both':
+            fields = fields + ['vision_role', 'actor_uses_vision', 'rules_use_vision']
         if not new_file:
             with open(self.metrics_path, newline='') as existing:
                 if next(csv.reader(existing), None) != fields:
@@ -1475,6 +1480,10 @@ class Coordinator(object):
         if observed_free_area is not None:
             row.update(control_progress_mode=self.control_progress_mode,
                        observed_free_area_m2='%.4f' % observed_free_area)
+        if self.observed_free is not None or self.vision_role != 'both':
+            row.update(vision_role=self.vision_role,
+                       actor_uses_vision=int(self.actor_uses_vision),
+                       rules_use_vision=int(self.rules_use_vision))
         with self._metrics_lock:
             if self._metrics_writer is None or self._metrics_file is None:
                 return
@@ -1783,7 +1792,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
             self._publish_policy_observations(
                 control_coverage if reference_control else 0.0,
                 frontiers, frontier_ids, owner,
-                execution_costs, execution_features)
+                execution_features)
 
             for i, name in enumerate(self.robot_names):
                 pos = np.array(self.positions[name])
@@ -1935,7 +1944,7 @@ td, th {{ border: 1px solid #ccc; padding: 6px 14px; text-align: left; }}
                             first_pos = np.array(self.first_node_pos[name])
                             delta = np.linalg.norm(own_frontiers - first_pos, axis=1)
                             utility = ALPHA * d + (1 - ALPHA) * delta
-                            if self.selection_mode == 'vision':
+                            if self.selection_mode == 'vision' and self.rules_use_vision:
                                 yaw = self.yaws.get(name, 0.0)
                                 vision = np.array([
                                     self.vision_bias(pos, yaw, f, name) for f in own_frontiers])

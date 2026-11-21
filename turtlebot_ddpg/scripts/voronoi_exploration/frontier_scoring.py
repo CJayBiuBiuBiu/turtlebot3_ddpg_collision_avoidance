@@ -7,6 +7,15 @@ import numpy as np
 
 
 SELECTION_MODES = ("geometric", "vision", "execution_aware")
+VISION_ROLES = ("both", "actor_only", "rules_only", "off")
+
+
+def vision_role_flags(role, enabled=True):
+    """Return whether the actor input and rule decisions may each use vision."""
+    if role not in VISION_ROLES:
+        raise ValueError("vision_role must be one of %s" % (VISION_ROLES,))
+    return (enabled and role in ("both", "actor_only"),
+            enabled and role in ("both", "rules_only"))
 
 
 DEFAULT_WEIGHTS = {
@@ -240,6 +249,19 @@ def combine_assignment_cost_terms(distance, path=None, obstacle=None,
         - cfg["vision"] * vision_n
     )
     return np.nan_to_num(cost, nan=1.0, posinf=1.0, neginf=-1.0)
+
+
+def score_frontier_roles(mode, vision, actor_uses_vision, rules_use_vision,
+                         **terms):
+    """Separate rule ranking and ownership from what the actor directly sees."""
+    actor_vision = vision if actor_uses_vision else np.zeros_like(vision)
+    rule_vision = vision if rules_use_vision else None
+    rule_cost = combine_cost_terms(mode, vision=rule_vision, **terms)
+    ownership_cost = combine_assignment_cost_terms(vision=rule_vision, **terms)
+    actor_cost = rule_cost
+    if actor_uses_vision != rules_use_vision:
+        actor_cost = combine_cost_terms(mode, vision=actor_vision, **terms)
+    return rule_cost, ownership_cost, actor_cost, actor_vision
 
 
 def finite_fallback_value(distance):

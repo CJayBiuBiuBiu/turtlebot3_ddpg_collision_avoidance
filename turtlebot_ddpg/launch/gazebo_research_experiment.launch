@@ -75,6 +75,8 @@
        doc="thirds (checkpoint-compatible baseline) or interpolated"/>
   <arg name="vision_feature_scale" default="1.0"
        doc="Scale applied to camera openness before it enters frontier costs and MAPPO tokens"/>
+  <arg name="vision_role" default="both"
+       doc="Use visual scores in both, actor_only, rules_only, or off"/>
   <arg name="mapping_mode" default="laser_scan"
        doc="laser_scan (unknown-map default) or ground_truth_radius (legacy baseline)"/>
   <arg name="pose_source" default="gazebo_truth"
@@ -164,6 +166,7 @@
     <param name="vision_scoring_mode" value="$(arg vision_scoring_mode)"/>
     <param name="vision_projection_mode" value="$(arg vision_projection_mode)"/>
     <param name="vision_feature_scale" value="$(arg vision_feature_scale)"/>
+    <param name="vision_role" value="$(arg vision_role)"/>
     <param name="mapping_mode" value="$(arg mapping_mode)"/>
     <param name="pose_source" value="$(arg pose_source)"/>
     <param name="communication_delay_s" value="$(arg communication_delay_s)"/>
